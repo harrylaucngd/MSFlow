@@ -1,0 +1,6 @@
+*.json
+*.ipynb
+*.pyc
+*.log
+*.txt
+wandb/
