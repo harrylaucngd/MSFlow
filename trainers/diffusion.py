@@ -18,5 +18,5 @@ def diffusion_train_step(batch, model, optimizer, device, mask_token_id, vocab_s
     logits = model(xt)
     loss_fn = CrossEntropyLoss(ignore_index=pad_token_id)
     loss = loss_fn(logits.view(-1, vocab_size), x0.view(-1))
-    optimizer.zero_grad(); loss.backward(); optimizer.step()
-    return loss.item()
+    # optimizer.zero_grad(); loss.backward(); optimizer.step()
+    return loss #loss.item()

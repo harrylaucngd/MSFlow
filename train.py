@@ -10,6 +10,7 @@ from data import MolDataset
 from modules.lit_model import MolBERTLitModule
 from configs import data,lit_model
 
+torch.set_float32_matmul_precision('medium')
 
 
 def main():
@@ -50,6 +51,7 @@ def main():
         hidden_dim= lit_model.d_model,
         n_layers= lit_model.n_layers,
         n_heads= lit_model.n_heads,
+        mlp = lit_model.mlp,
         lr=lit_model.lr,
         warmup_ratio=lit_model.warmup_ratio,
         pad_token_id=TOK2ID[data.PAD],

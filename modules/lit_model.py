@@ -27,6 +27,7 @@ class MolBERTLitModule(pl.LightningModule):
         self.model_name = model_name
         self.model = MolBERT(vocab_size, hidden_dim, n_layers, n_heads, mlp)
         self.lr_scheduler = None  # Initialized in on_fit_start
+        self.automatic_optimization = False
 
     def configure_optimizers(self):
         optimizer = AdamW(self.model.parameters(), lr=self.hparams.lr)
@@ -45,7 +46,7 @@ class MolBERTLitModule(pl.LightningModule):
 
     def training_step(self, batch):
         optimizer = self.optimizers()
-
+        loss = None
         if self.model_name == 'diffusion':
             loss = diffusion.diffusion_train_step(
                 batch, self.model, optimizer,
@@ -62,10 +63,13 @@ class MolBERTLitModule(pl.LightningModule):
                 self.hparams.mask_token_id,
                 self.hparams.pad_token_id
             )
-            self.log("mfm_loss", loss, prog_bar=True)
+            self.log("mfm_loss", loss.item(), prog_bar=True)
         else:
             raise ValueError(f"Unknown model_name: {self.model_name}")
 
+        self.manual_backward(loss)
+        optimizer.step()
         self.lr_scheduler.step()
+        optimizer.zero_grad()
         self.log("lr", optimizer.param_groups[0]["lr"], prog_bar=True)
         return loss
