@@ -1,7 +1,7 @@
 import torch
 from utils import *
 import json
-
+from configs import *
 vocab_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/vocab.json'
 
 
@@ -58,10 +58,37 @@ def sample_from_logits(logits, temperature=1.0, top_k=None, top_p=None):
     return torch.multinomial(probs, num_samples=1).squeeze(-1)
 
 @torch.no_grad()
-def sample_diffusion(model, seed_tokens=None, steps=T_STEPS, temperature=1.0, top_k=None, top_p=None):
+def sample_diffusion(model, num_samples=1, seed_tokens=None, steps=T_STEPS, temperature=1.0, top_k=None, top_p=None):
+    """Iterative denoising from all‑MASK to sequence using stochastic sampling."""
+    B = num_samples
+    x = torch.full((B, MAX_LEN), TOK2ID[MASK], dtype=torch.long, device=device)
+    
+    for t in range(steps, 0, -1):
+        logits = model(x)               # (B, L, V)
+        mask_idx = (x == TOK2ID[MASK])  # (B, L)
+        
+        if not mask_idx.any():
+            break
+
+        logits_masked = logits[mask_idx]  # (N_masked, V)
+        sampled_tokens = sample_from_logits(
+            logits_masked,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p
+        )
+        x[mask_idx] = sampled_tokens
+
+        keep_prob = 1.0 - mask_sched(t)
+        keep_mask = torch.bernoulli(torch.full((B, MAX_LEN), keep_prob, device=device)).bool() & (x != TOK2ID[MASK])
+        x = torch.where(keep_mask, x, torch.full_like(x, TOK2ID[MASK]))
+
+    return x.cpu().tolist()  # returns List[List[int]], one list per sample
+
+# def sample_diffusion(model, seed_tokens=None, steps=T_STEPS, temperature=1.0, top_k=None, top_p=None):
     """Iterative denoising from all‑MASK to sequence using stochastic sampling."""
     B = 1
-    x = torch.full((B, MAX_LEN), TOK2ID[MASK], dtype=torch.long, device=DEVICE)
+    x = torch.full((B, MAX_LEN), TOK2ID[MASK], dtype=torch.long, device=device)
     for t in range(steps, 0, -1):
         logits = model(x)               # (B,L,V)
         # Only sample tokens currently masked
@@ -80,15 +107,26 @@ def sample_diffusion(model, seed_tokens=None, steps=T_STEPS, temperature=1.0, to
         x[mask_idx] = sampled_tokens
 
         keep_prob = 1.0 - mask_sched(t)
-        keep_mask = torch.bernoulli(torch.full((B, MAX_LEN), keep_prob, device=DEVICE)).bool() & (x != TOK2ID[MASK])
+        keep_mask = torch.bernoulli(torch.full((B, MAX_LEN), keep_prob, device=device)).bool() & (x != TOK2ID[MASK])
         x = torch.where(keep_mask, x, torch.full_like(x, TOK2ID[MASK]))
 
     return x.cpu().tolist()[0]
 
 @torch.no_grad()
-def sample_mfm(model ,temperature=1.0, top_k=None, top_p=None):
+def sample_mfm(model, num_samples=1, temperature=1.0, top_k=None, top_p=None):
     """One‑shot decoding from all‑MASK using MFM vector field with stochastic sampling."""
-    x = torch.full((1, MAX_LEN), TOK2ID[MASK], dtype=torch.long, device=DEVICE)
+    x = torch.full((num_samples, MAX_LEN), TOK2ID[MASK], dtype=torch.long, device=device)
+    logits = model(x)  # (num_samples, L, V)
+    sampled = sample_from_logits(
+        logits.view(-1, logits.size(-1)),  # (num_samples * L, V)
+        temperature=temperature,
+        top_k=top_k,
+        top_p=top_p
+    )
+    sampled = sampled.view(num_samples, MAX_LEN)
+    return sampled.cpu().tolist()
+# def sample_mfm(model , temperature=1.0, top_k=None, top_p=None):
+    x = torch.full((1, MAX_LEN), TOK2ID[MASK], dtype=torch.long, device=device)
     logits = model(x)                     # (1,L,V)
     sampled = sample_from_logits(
         logits.squeeze(0),                # (L,V)

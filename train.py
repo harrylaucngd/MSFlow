@@ -5,7 +5,8 @@ import pandas as pd
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
+
 from data import MolDataset
 from modules.lit_model import MolBERTLitModule
 from configs import data,lit_model
@@ -23,7 +24,16 @@ def main():
     df = df[df["seq_len"] <= data.MAX_LEN]
     encoded = df["encoded"].apply(lambda x: x[:data.MAX_LEN]).tolist()
     dataset = MolDataset(encoded)
-    loader = DataLoader(dataset, batch_size=data.batch_size, shuffle=True, num_workers=8)
+    # train_val random split
+    train_size = int(0.9 * len(dataset))
+    val_size = len(dataset) - train_size
+    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+    train_loader = DataLoader(train_dataset, batch_size=data.batch_size, shuffle=True, num_workers=8)
+    val_loader = DataLoader(val_dataset, batch_size=data.batch_size, shuffle=False, num_workers=8)
+    print("Length of training set: ", train_size)
+    print("Length of validation set: ", val_size)
+    # loader = DataLoader(dataset, batch_size=data.batch_size, shuffle=True, num_workers=8)
 
     wandb_base_dir = "wandb"
     run_id = None
@@ -65,8 +75,8 @@ def main():
 
     ckpt_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
-        filename="last",
-        save_top_k=1,
+        filename= lit_model.model_name + "_last",
+        # save_top_k=1,
         save_last=True,
         # every_n_epochs=1,
         save_weights_only=False,
@@ -82,7 +92,7 @@ def main():
     )
 
     # --- Train ---
-    trainer.fit(model, loader, ckpt_path=resume_ckpt)
+    trainer.fit(model, train_loader, val_loader, ckpt_path=resume_ckpt)
 
 
 if __name__ == "__main__":
