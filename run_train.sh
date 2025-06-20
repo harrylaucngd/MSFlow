@@ -8,7 +8,7 @@
 #SBATCH --partition=gpu_p
 #SBATCH --qos=gpu_long
 #SBATCH --gres=gpu:1
-#SBATCH -C a100_40gb|a100_80gb
+#SBATCH -C a100_80gb
 #SBATCH --time=72:00:00
 #SBATCH --exclude=supergpu02,supergpu03,supergpu15
 #SBATCH --nice=1000

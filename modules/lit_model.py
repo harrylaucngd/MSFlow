@@ -1,18 +1,22 @@
 import pytorch_lightning as pl
 import torch
-from models.molbert import MolBERT
-from utils.optimizer import get_optimizers_and_schedulers
-from trainers import diffusion, mfm
-
+from models.molbert import FlowMolBERT
+from trainers import diffusion, dfm
 from torch.optim import AdamW
-from transformers import get_linear_schedule_with_warmup, get_cosine_schedule_with_warmup
-import random
+from transformers import get_cosine_schedule_with_warmup
+import torch.nn as nn
+from flow_matching.path import MixtureDiscreteProbPath
+from flow_matching.path.scheduler import PolynomialConvexScheduler
+from utils.metrics import decode_tokens_to_smiles, compute_smiles_metrics
+from utils.sample import generate_mols
+from configs import *
 
-class MolBERTLitModule(pl.LightningModule):
+class FlowMolBERTLitModule(pl.LightningModule):
     def __init__(
         self,
-        model_name='mfm',  # or 'diffusion'
+        model_name='dfm',  # or 'diffusion'
         vocab_size=173,
+        time_dim = 1,
         hidden_dim=128,
         n_layers=4,
         n_heads=4,
@@ -21,17 +25,20 @@ class MolBERTLitModule(pl.LightningModule):
         warmup_ratio=0.1,
         pad_token_id=1,
         mask_token_id=0,
-        device='cuda'
+        device='cuda',
+        source = 'masked', # uniform
+        path =  MixtureDiscreteProbPath(scheduler=PolynomialConvexScheduler(n=1.0)),
+        loss_fn = nn.CrossEntropyLoss(),
     ):
         super().__init__()
         self.save_hyperparameters()
         self.model_name = model_name
-        self.model = MolBERT(vocab_size, hidden_dim, n_layers, n_heads, mlp)
+        self.model = FlowMolBERT(vocab_size,time_dim, hidden_dim, n_layers, n_heads, mlp)
         self.lr_scheduler = None  # Initialized in on_fit_start
         self.automatic_optimization = False
 
     def configure_optimizers(self):
-        optimizer = AdamW(self.model.parameters(), lr=self.hparams.lr)
+        optimizer = AdamW(self.model.parameters(), lr=self.hparams.lr,betas=(0.9, 0.98),weight_decay=0.01)
         return optimizer
 
     def on_fit_start(self):
@@ -51,21 +58,21 @@ class MolBERTLitModule(pl.LightningModule):
         loss = None
         if self.model_name == 'diffusion':
             loss = diffusion.diffusion_train_step(
-                batch, self.model, optimizer,
+                batch, self.model,
+                self.hparams.vocab_size,
                 self.hparams.device,
                 self.hparams.mask_token_id,
-                self.hparams.vocab_size,
                 self.hparams.pad_token_id
             )
             self.log("diffusion_loss", loss, prog_bar=True)
-        elif self.model_name == 'mfm':
-            loss = mfm.mfm_train_step(
-                batch, self.model, optimizer,
+
+        elif self.model_name == 'dfm':
+            loss = dfm.dfm_step(
+                batch, self.model,self.hparams.source,self.hparams.loss_fn, self.hparams.path,
                 self.hparams.device,
                 self.hparams.mask_token_id,
-                self.hparams.pad_token_id
             )
-            self.log("mfm_loss", loss.item(), prog_bar=True)
+            self.log("train_loss", loss.item(), prog_bar=True)
         else:
             raise ValueError(f"Unknown model_name: {self.model_name}")
 
@@ -78,13 +85,18 @@ class MolBERTLitModule(pl.LightningModule):
     
     @torch.no_grad()
     def validation_step(self, batch):
-        x0 = batch.to(self.device)
-        # Use a fixed masking ratio or the same random masking you do in training for validation
-        mask_ratio = 0.3  # e.g. fixed or tuned for validation random.uniform(0.1, 0.6)
-
-        noise = torch.bernoulli(torch.full_like(x0, mask_ratio, dtype=torch.float)).bool()
-        xc = torch.where(noise, torch.full_like(x0, self.hparams.mask_token_id), x0)
-        logits = self.model(xc)
-        loss = mfm.mfm_flow_loss(x0, xc, logits, self.hparams.pad_token_id)
-        self.log("val_loss", loss, prog_bar=True, on_step=False, on_epoch=True)
+        loss = dfm.dfm_step(batch,self.model,self.hparams.source, self.hparams.loss_fn, self.hparams.path,
+                self.hparams.device,
+                self.hparams.mask_token_id)
+        self.log("val_loss", loss, prog_bar=True, on_step=False, on_epoch=True,sync_dist=True)
         return loss
+    
+    @torch.no_grad()
+    def on_validation_epoch_end(self):
+        samples = generate_mols(self.model, num_samples=1000)
+        total_samples = len(samples)
+        _, smiles = decode_tokens_to_smiles(samples, ID2TOK=ID2TOK, TOK2ID=TOK2ID, PAD=PAD)
+        metrics = compute_smiles_metrics(total_samples=total_samples, decoded_smiles=smiles)
+        self.log("validity", metrics['validity'], on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("uniqueness", metrics['uniqueness'], on_epoch=True, sync_dist=True)
+        self.log("diversity", metrics['diversity'], on_epoch=True, sync_dist=True)

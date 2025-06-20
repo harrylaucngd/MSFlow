@@ -1,1 +1,1 @@
-from .molbert import  MolBERT
+from .molbert import  FlowMolBERT

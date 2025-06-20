@@ -1,1 +1,1 @@
-from .lit_model import MolBERTLitModule
+from .lit_model import FlowMolBERTLitModule
