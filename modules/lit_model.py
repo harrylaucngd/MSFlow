@@ -27,8 +27,10 @@ class FlowMolBERTLitModule(pl.LightningModule):
         mask_token_id=0,
         device='cuda',
         source = 'masked', # uniform
-        path =  MixtureDiscreteProbPath(scheduler=PolynomialConvexScheduler(n=1.0)),
+        scheduler = PolynomialConvexScheduler(n=1.0),
+        path =  MixtureDiscreteProbPath(PolynomialConvexScheduler(n=1.0)),
         loss_fn = nn.CrossEntropyLoss(),
+        weighted = False
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -68,9 +70,10 @@ class FlowMolBERTLitModule(pl.LightningModule):
 
         elif self.model_name == 'dfm':
             loss = dfm.dfm_step(
-                batch, self.model,self.hparams.source,self.hparams.loss_fn, self.hparams.path,
+                batch, self.model,self.hparams.source,self.hparams.loss_fn,self.hparams.scheduler, self.hparams.path, 
                 self.hparams.device,
                 self.hparams.mask_token_id,
+                self.hparams.weighted
             )
             self.log("train_loss", loss.item(), prog_bar=True)
         else:
@@ -85,9 +88,12 @@ class FlowMolBERTLitModule(pl.LightningModule):
     
     @torch.no_grad()
     def validation_step(self, batch):
-        loss = dfm.dfm_step(batch,self.model,self.hparams.source, self.hparams.loss_fn, self.hparams.path,
+        loss = dfm.dfm_step(
+                batch, self.model,self.hparams.source,self.hparams.loss_fn,self.hparams.scheduler, self.hparams.path, 
                 self.hparams.device,
-                self.hparams.mask_token_id)
+                self.hparams.mask_token_id,
+                self.hparams.weighted
+            )
         self.log("val_loss", loss, prog_bar=True, on_step=False, on_epoch=True,sync_dist=True)
         return loss
     

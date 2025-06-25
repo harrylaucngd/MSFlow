@@ -69,12 +69,14 @@ def main():
         mask_token_id=TOK2ID[data.MASK],
         device=lit_model.device,
         source= lit_model.source,
+        scheduler = lit_model.scheduler,
         path = lit_model.path,
         loss_fn = lit_model.loss,
+        weighted=lit_model.weighted
     )
     early_stop_callback = EarlyStopping(
     monitor="val_loss",      
-    patience=10,              
+    patience=15,              
     mode="min",             
     verbose=True)
 

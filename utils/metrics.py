@@ -11,7 +11,6 @@ RDLogger.logger().setLevel(RDLogger.CRITICAL)
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
-
 def is_valid_smiles(smiles: str) -> bool:
     return Chem.MolFromSmiles(smiles) is not None
 
@@ -92,5 +91,5 @@ def compute_smiles_metrics(
     return {
         "validity": len(valid_smiles) / total_samples,
         "uniqueness": len(unique_smiles) / len(valid_smiles),
-        "diversity": diversity
+        "diversity": diversity,
     }

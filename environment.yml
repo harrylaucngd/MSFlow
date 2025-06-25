@@ -31,6 +31,7 @@ dependencies:
   - libsodium=1.0.18
   - libstdcxx-ng=11.2.0
   - libuuid=1.41.5
+  - libxcb=1.17.0
   - matplotlib-inline=0.1.7
   - mkl=2023.1.0
   - mkl-service=2.4.0
@@ -47,9 +48,10 @@ dependencies:
   - parso=0.8.4
   - pexpect=4.9.0
   - pickleshare=0.7.5
-  - pip=25.1
+  - pip=25.1.1
   - platformdirs=4.3.8
   - prompt-toolkit=3.0.51
+  - pthread-stubs=0.4
   - ptyprocess=0.7.0
   - pure_eval=0.2.3
   - pygments=2.19.1
@@ -74,6 +76,10 @@ dependencies:
   - tzdata=2025b
   - wcwidth=0.2.13
   - wheel=0.45.1
+  - xorg-libx11=1.8.12
+  - xorg-libxau=1.0.12
+  - xorg-libxdmcp=1.1.5
+  - xorg-xorgproto=2024.1
   - xz=5.6.4
   - zeromq=4.3.5
   - zlib=1.2.13
@@ -109,6 +115,7 @@ dependencies:
       - evaluate==0.4.3
       - fastjsonschema==2.21.1
       - filelock==3.18.0
+      - flow-matching==1.0.10
       - fonttools==4.58.0
       - fqdn==1.5.1
       - frozenlist==1.6.0
@@ -137,6 +144,7 @@ dependencies:
       - jupyterlab-pygments==0.3.0
       - jupyterlab-server==2.27.3
       - kiwisolver==1.4.8
+      - lightning-utilities==0.14.3
       - locket==1.0.0
       - loguru==0.7.3
       - markdown-it-py==3.0.0
@@ -180,6 +188,7 @@ dependencies:
       - pydantic-core==2.33.2
       - pyparsing==3.2.3
       - python-json-logger==3.3.0
+      - pytorch-lightning==2.5.1.post0
       - pyyaml==6.0.2
       - rdkit==2025.3.2
       - referencing==0.36.2
@@ -191,6 +200,7 @@ dependencies:
       - rpds-py==0.25.0
       - safe-mol==0.1.13
       - safetensors==0.5.3
+      - seaborn==0.13.2
       - selfies==2.2.0
       - send2trash==1.8.3
       - sentry-sdk==2.29.1
@@ -207,6 +217,8 @@ dependencies:
       - tomli==2.2.1
       - toolz==1.0.0
       - torch==2.7.0
+      - torchdiffeq==0.2.5
+      - torchmetrics==1.7.2
       - tornado==6.5
       - tqdm==4.67.1
       - transformers==4.51.3
@@ -224,3 +236,4 @@ dependencies:
       - xxhash==3.5.0
       - yarl==1.20.0
       - zipp==3.21.0
+prefix: /home/icb/ghaith.mqawass/miniconda3/envs/flow

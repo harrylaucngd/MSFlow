@@ -19,7 +19,7 @@ from configs import *
 
 
 
-def dfm_step(batch, model, source, loss_fn, path, device, mask_token_id):
+def dfm_step(batch, model, source, loss_fn,scheduler, path, device, mask_token_id,weighted=False):
     B = batch.size(0)
     x1 = batch.to(device)
     if source == 'masked':
@@ -32,7 +32,16 @@ def dfm_step(batch, model, source, loss_fn, path, device, mask_token_id):
     logits = model(x=path_sample.x_t, t=path_sample.t)
 
     if isinstance(loss_fn, CrossEntropyLoss):
-        loss = loss_fn(logits.view(-1, logits.size(-1)), x1.view(-1)).mean()   # Reshape for CrossEntropy: [B * T, vocab]
+        if weighted == False:
+            loss = loss_fn(logits.view(-1, logits.size(-1)), x1.view(-1)).mean()   # Reshape for CrossEntropy: [B * T, vocab]
+        else:
+            loss_per_sample = loss_fn(logits.view(-1, logits.size(-1)), x1.view(-1))  #[B*T]
+            alpha_t, sigma_t = scheduler(t).alpha_t,scheduler(t).sigma_t
+            weights = alpha_t / sigma_t
+            weights = torch.clamp(weights, min=0.05, max=1.5)
+            weights_expanded = weights.unsqueeze(1).repeat(1, x1.size(-1)).view(-1)  #[B]-----> [B,1] ---> [B,T] ----> [B*T]
+            weighted_loss = loss_per_sample * weights_expanded
+            loss = weighted_loss.mean()
 
     elif isinstance(loss_fn, MixturePathGeneralizedKL):
         loss = loss_fn(

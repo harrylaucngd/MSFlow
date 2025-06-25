@@ -18,5 +18,5 @@ TOK2ID['[PAD]'] = TOK2ID.pop('')
 ID2TOK[1] = '[PAD]'
 vocab_size = len(TOK2ID)   ##173 tokens
 
-batch_size = 2048
+batch_size = 2048  #2048 for all exps, except n_layers=14
 MAX_LEN = 72           #1601 orig the longest seq
