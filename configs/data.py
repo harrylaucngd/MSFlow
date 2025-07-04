@@ -1,6 +1,7 @@
 import random, numpy as np, torch
 import json
-data_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/df_safe_parsed.parquet'
+# data_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/df_safe_parsed.parquet'
+data_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/df_main_wconditions.parquet'
 vocab_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/vocab.json'
 output_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/checkpoints/'
 SEED = 42
@@ -18,5 +19,5 @@ TOK2ID['[PAD]'] = TOK2ID.pop('')
 ID2TOK[1] = '[PAD]'
 vocab_size = len(TOK2ID)   ##173 tokens
 
-batch_size = 2048  #2048 for all exps, except n_layers=14
+batch_size = 1024  #2048 for all exps, except n_layers=14
 MAX_LEN = 72           #1601 orig the longest seq

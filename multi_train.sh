@@ -17,4 +17,4 @@ source ~/.bashrc
 conda activate flow
 
 # Run your training script
-srun torchrun --nproc-per-node=2 train.py
+srun torchrun --nproc-per-node=2 train_cond.py

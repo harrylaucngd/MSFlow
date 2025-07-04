@@ -8,18 +8,21 @@ model_name = 'dfm'
 source = 'uniform' #masked
 d_model=767  # must be divisble by num of heads, +1 for time embedding
 vocab = 173
+COND_DIM = 1449
 n_layers=12
 n_heads=12
 mlp = 1024
-max_steps = 65000 #100 epochs = 52900 steps
+max_steps = 63000 #100 epochs = 52900 steps
 lr = 5e-4
-warmup_ratio = 0.07
+warmup_ratio = 0.1
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-scheduler=PolynomialConvexScheduler(n=2.0)
-path = MixtureDiscreteProbPath(scheduler=PolynomialConvexScheduler(n=2.0))
-# loss = MixturePathGeneralizedKL(path=path)
-weighted = True
-if(weighted):
-    loss = CrossEntropyLoss(reduction='none')
-else:
-    loss = CrossEntropyLoss()
+scheduler=PolynomialConvexScheduler(n=1.0)
+path = MixtureDiscreteProbPath(scheduler=PolynomialConvexScheduler(n=1.0))
+loss = MixturePathGeneralizedKL(path=path)
+weighted = False
+# if(weighted):
+#     loss = CrossEntropyLoss(reduction='none')
+# else:
+#     loss = CrossEntropyLoss()
+temperature = 1
+uncond_prob = 0.1

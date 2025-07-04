@@ -3,20 +3,6 @@ from torch.nn import CrossEntropyLoss
 from flow_matching.loss import MixturePathGeneralizedKL
 from configs import *
 
-#worked correctly
-# def dfm_step(batch, model, loss_fn, path, device,mask_token_id):
-#     B = batch.size(0)
-#     x1 = batch.to(device)
-#     x0 = torch.full_like(x1, fill_value=mask_token_id) #fully_masked source
-
-#     # x0 = torch.randint_like(x1, vocab)  # uniform source
-#     t = torch.rand(B, device=device) * (1 - 1e-3) #singularity at 1 if ELBO is used
-
-#     sample = path.sample(t=t, x_0=x0, x_1=x1)
-#     logits = model(sample.x_t, sample.t)
-#     loss = loss_fn(logits=logits, x_1=x1, x_t=sample.x_t, t=sample.t)
-#     return loss #loss.item()
-
 
 
 def dfm_step(batch, model, source, loss_fn,scheduler, path, device, mask_token_id,weighted=False):
@@ -54,6 +40,9 @@ def dfm_step(batch, model, source, loss_fn,scheduler, path, device, mask_token_i
         raise ValueError("Invalid loss function type: {}".format(type(loss_fn)))
 
     return loss
+
+
+
 
 
 

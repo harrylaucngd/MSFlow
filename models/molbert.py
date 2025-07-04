@@ -3,7 +3,7 @@ import torch
 from configs.data import MAX_LEN
 
 class FlowMolBERT(nn.Module):
-    def __init__(self, vocab, time_dim=1, d_model=127, n_layers=4, n_heads=4, mlp=256, max_len=MAX_LEN):
+    def __init__(self, vocab, time_dim=1, d_model=127, n_layers=4, n_heads=4, mlp=256, max_len=72):
         super().__init__()
         self.d_model = d_model
         self.tok_emb = nn.Embedding(vocab, d_model)

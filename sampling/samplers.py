@@ -7,8 +7,18 @@ from flow_matching.solver import MixtureDiscreteEulerSolver
 from flow_matching.utils import ModelWrapper
 
 class WrappedModel(ModelWrapper):
+    def __init__(self, model, temperature=1.0):
+        super().__init__(model)
+        self.temperature = temperature
+
     def forward(self, x: torch.Tensor, t: torch.Tensor, **extras):
-        return torch.softmax(self.model(x, t), dim=-1)
+        logits = self.model(x, t)
+        return torch.softmax(logits / self.temperature, dim=-1)
+
+
+# class WrappedModel(ModelWrapper):
+#     def forward(self, x: torch.Tensor, t: torch.Tensor, **extras):
+#         return torch.softmax(self.model(x, t), dim=-1)
     
 #35% validity    
 @torch.no_grad()
@@ -22,7 +32,8 @@ def sample_flow(num_samples,
     steps=128,
     epsilon=1e-3,
     device="cpu",
-    return_intermediates=False
+    return_intermediates=False,
+    temperature = 1.0
 ):
     # Step size and time grid
     step_size = 1.0 / steps
@@ -38,7 +49,7 @@ def sample_flow(num_samples,
         raise NotImplementedError(f"Unknown source_distribution: {source_distribution}")
 
     # Wrap model in probability denoiser wrapper
-    wrapped_model = WrappedModel(model)
+    wrapped_model = WrappedModel(model,temperature=temperature)
 
     # Create solver with model, path, and vocabulary size
     solver = MixtureDiscreteEulerSolver(
@@ -99,85 +110,6 @@ def sample_flow(num_samples,
 #         results.append((x_t.clone(), t))
     
 #     return x_t.detach().cpu()  # or return x_t for just final samples
-
-## with some hacks, haven't tried yet
-@torch.no_grad()
-def sample_flow_custom(
-    model,
-    vocab_size,
-    seq_len,
-    num_samples=1,
-    source_distribution="masked",
-    mask_token_id=0,
-    pad_token_id=1,  # Add your actual [PAD] token ID here
-    steps=128,
-    epsilon=1e-3,
-    entropy_threshold=1.0,  # adjust as needed
-    freeze_start_step_ratio=0.5,  # start freezing after this % of steps
-    device='cuda'
-):
-    n_samples = num_samples
-
-    # Initialization
-    if source_distribution == "uniform":
-        x_t = torch.randint(size=(n_samples, seq_len), high=vocab_size, device=device)
-    elif source_distribution == "masked":
-        x_t = torch.full(size=(n_samples, seq_len), fill_value=mask_token_id, device=device)
-    else:
-        raise NotImplementedError(f"Unknown source_distribution: {source_distribution}")
-    
-    t = 0.0
-    results = [(x_t.clone(), t)]
-
-    for step in range(steps):
-        t_tensor = torch.full((n_samples,), t, device=device)
-
-        # Model logits
-        logits = model(x_t, t_tensor)
-
-        # Suppress [MASK] and [PAD] tokens
-        logits[..., mask_token_id] = -1e6
-        logits[..., pad_token_id] = -1e6
-
-        # Temperature annealing
-        temperature = max(1e-2, 1.0 - t)
-        p_t = torch.softmax(logits / temperature, dim=-1)
-
-        # One-hot encoding of current x_t
-        x_one_hot = F.one_hot(x_t, num_classes=vocab_size).float()
-
-        # Compute entropy for each position
-        entropy = -(p_t * torch.log(p_t + 1e-8)).sum(dim=-1)  # [B, L]
-
-        # Decide which tokens to freeze (low entropy)
-        freeze_mask = (entropy < entropy_threshold).unsqueeze(-1)  # [B, L, 1]
-
-        # Compute update direction u
-        u = (p_t - x_one_hot) / (1.0 - t + 1e-5)
-
-        # Step size
-        h = min(1.0 - t, 1.0 / steps)
-
-        # Update token distributions
-        new_probs = x_one_hot + h * u
-        new_probs = torch.clamp(new_probs, min=1e-6)
-        new_probs = new_probs / new_probs.sum(dim=-1, keepdim=True)
-
-        # Optional freezing in later steps
-        if step >= int(freeze_start_step_ratio * steps):
-            new_probs = torch.where(freeze_mask, x_one_hot, new_probs)
-
-        # Sample next tokens
-        x_t = torch.distributions.Categorical(probs=new_probs).sample()
-
-        t += h
-        results.append((x_t.clone(), t))
-
-    return x_t.detach().cpu() 
-
-
-
-
 
 
 
