@@ -56,7 +56,7 @@ def sample_flow_cond(
     device="cpu",
     return_intermediates=False,
     temperature=1.0,
-    guidance_scale = 1.0,
+    guidance_scale = 0.0,
     uncond_prob=0.0,
 ):
     """

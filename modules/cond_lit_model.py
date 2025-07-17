@@ -63,17 +63,7 @@ class CondFlowMolBERTLitModule(pl.LightningModule):
     def training_step(self, batch):
         optimizer = self.optimizers()
         loss = None
-        if self.model_name == 'diffusion':
-            loss = diffusion.diffusion_train_step(
-                batch, self.model,
-                self.hparams.vocab_size,
-                self.hparams.device,
-                self.hparams.mask_token_id,
-                self.hparams.pad_token_id
-            )
-            self.log("diffusion_loss", loss, prog_bar=True)
-
-        elif self.model_name == 'dfm':
+        if self.model_name == 'dfm':
             loss = cond_dfm.dfm_step(
                 batch[0], batch[1], self.model,self.hparams.source,self.hparams.loss_fn,self.hparams.scheduler, self.hparams.path, 
                 self.hparams.device,

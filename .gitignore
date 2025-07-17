@@ -1,8 +1,8 @@
 *.json
-*.ipynb
 *.pyc
 *.log
 *.txt
+*.png
 wandb/
 logs/
 figures/
