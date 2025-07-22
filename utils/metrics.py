@@ -20,7 +20,7 @@ def get_mols(smiles_list: Collection[str]):
 
 
 def get_fingerprints(mols: List[Chem.Mol]):
-    return [AllChem.GetMorganFingerprintAsBitVect(m, 2, nBits=2048)
+    return [AllChem.GetMorganFingerprintAsBitVect(m, 3, nBits=1024)
             for m in mols if m is not None]
 
 
@@ -87,7 +87,6 @@ def compute_smiles_metrics(
     sim_matrix = calculate_internal_pairwise_similarities(unique_smiles)
     n = len(unique_smiles)
     diversity = 1.0 - (np.sum(sim_matrix) / (n * (n - 1))) if n > 1 else 0.0
-
     return {
         "validity": len(valid_smiles) / total_samples,
         "uniqueness": len(unique_smiles) / len(valid_smiles),

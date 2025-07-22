@@ -20,18 +20,18 @@ class MolDataset(Dataset):
 
 
 # Set up generator once
-morgan_gen = GetMorganGenerator(radius=2, fpSize=512)
+morgan_gen = GetMorganGenerator(radius=3, fpSize=1024)
 
-def fast_smiles_to_fps(smiles_list, n_bits=512, radius=2):
+def fast_smiles_to_fps(smiles_list):
     mols = [Chem.MolFromSmiles(smi) for smi in smiles_list]
     mols = [mol for mol in mols if mol is not None]  # filter invalid
 
     n_mols = len(mols)
-    fps = np.zeros((n_mols, n_bits), dtype=np.uint8)
+    fps = []
 
     for i, mol in enumerate(mols):
         fp = morgan_gen.GetFingerprint(mol)
-        fps[i]= np.array(fp)  # faster than ConvertToNumpyArray
+        fps.append(fp)  # faster than ConvertToNumpyArray
 
     return fps
 
