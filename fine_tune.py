@@ -33,9 +33,9 @@ def main():
     df = df.iloc[:100000,:]   #similar size to the perturbation data sizels -ls
     # df_conditioned = df[df['has_condition']==True]   #train with samples that have conditions only
     encoded = df["encoded"].apply(lambda x: x[:data.MAX_LEN]).tolist()
-    condition = df.iloc[:,-11:]  #conditions_are 11 chem_props
+    condition = df.SMILES_standard # iloc[:,-1450:-1]  or #conditions_are 11 chem_props or 1449 CP features
     label = [True] * df.shape[0]
-    dataset = CondMolDataset(encoded,condition,label)
+    dataset = CondMolDataset(encoded,condition,label,df.index)
     # train_val split
     train_size = int(0.9 * len(dataset))
     val_size = len(dataset) - train_size
@@ -49,10 +49,10 @@ def main():
 
     wandb_base_dir = "wandb"
     run_id = None
-    name = f'Guided_{lit_model.loss}_L={data.MAX_LEN}_{lit_model.source}_layers={lit_model.n_layers}_dim={lit_model.d_model+1}'
+    name = f'ECFP_Guided_{lit_model.loss}_L={data.MAX_LEN}_{lit_model.source}_layers={lit_model.n_layers}_dim={lit_model.d_model+1}'
     wandb_logger = WandbLogger(
         project="morflow",
-        name=f"FM_{name}",
+        name=f"{name}",
         save_dir=wandb_base_dir,
         resume="allow",
         id=run_id
@@ -93,7 +93,7 @@ def main():
     
     early_stop_callback = EarlyStopping(
     monitor="val_loss",      
-    patience=8,              
+    patience=5,              
     mode="min",             
     verbose=True)
 
