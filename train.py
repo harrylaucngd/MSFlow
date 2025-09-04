@@ -44,7 +44,7 @@ def main():
     #         latest_run_dir = run_dirs[-1]
     #         run_id = latest_run_dir[-8:]
     #         print(f"Latest wandb run ID: {run_id}")
-    name = f'{lit_model.loss}_L={data.MAX_LEN}_{lit_model.source}_layers={lit_model.n_layers}_dim={lit_model.d_model+1}'
+    name = f'{lit_model.loss}_L={data.MAX_LEN}_{lit_model.source}_layers={lit_model.n_layers}_dim={lit_model.d_model}'
     wandb_logger = WandbLogger(
         project="morflow",
         name=f"FM_{name}",
@@ -76,7 +76,7 @@ def main():
     )
     early_stop_callback = EarlyStopping(
     monitor="val_loss",      
-    patience=15,              
+    patience=5,              
     mode="min",             
     verbose=True)
 
@@ -100,7 +100,7 @@ def main():
         max_steps = lit_model.max_steps,
         accelerator="gpu",
         strategy="ddp",
-        devices=2,   # or 2 for multi-GPU
+        devices=1,   # or 2 for multi-GPU
         logger=wandb_logger,
         callbacks=[ckpt_callback,early_stop_callback],
     )

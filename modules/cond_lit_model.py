@@ -1,7 +1,7 @@
 import pytorch_lightning as pl
 import torch
-from models.molbert import FlowMolBERT
-from models.cond_molbert import CondFlowMolBERT
+# from models.cond_molbert import CondFlowMolBERT
+from models.ada_cond_mobert import CondFlowMolBERT
 from trainers import diffusion, dfm, cond_dfm
 from torch.optim import AdamW
 from transformers import get_cosine_schedule_with_warmup
@@ -39,7 +39,7 @@ class CondFlowMolBERTLitModule(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model_name = model_name
-        self.model = CondFlowMolBERT(vocab_size,cond_dim,time_dim, hidden_dim, n_layers, n_heads, mlp,max_len=72,dropout=0.3)
+        self.model = CondFlowMolBERT(vocab_size,cond_dim,time_dim, hidden_dim, n_layers, n_heads, mlp,max_len=72,dropout=0.3,use_gates=True)
         self.lr_scheduler = None  # Initialized in on_fit_start
         self.automatic_optimization = False
         self.first_val_batch = None

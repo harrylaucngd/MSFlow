@@ -2,7 +2,7 @@ import torch
 import random
 from utils import *
 from torch.nn import CrossEntropyLoss
-from configs.trainers import *
+T_STEPS = 100
 mask_sched = lambda t: t / T_STEPS
 ce_loss = CrossEntropyLoss(ignore_index=None)  # Set dynamically later
 

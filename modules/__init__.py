@@ -1,1 +1,2 @@
 from .lit_model import FlowMolBERTLitModule
+from .cond_lit_model import CondFlowMolBERTLitModule
