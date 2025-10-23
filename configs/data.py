@@ -3,9 +3,9 @@ import json
 
 # data_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/df_12props_canon_safe_encoding.parquet'
 # data_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/df_12props_canon_safe_encoding_filtered_ms.parquet'
-data_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/ms_data/fingerprints_from_pretrained_encoder/msg/msg_val_safe_encoded.parquet'
-vocab_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/vocab.json'
-output_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/checkpoints/finetuned'
+data_path = '/home/mqawag/projects/data/combined_data_128_encoded.parquet'
+vocab_path = '/home/mqawag/projects/morflow2.0/vocab173.json'
+output_path = '/home/mqawag/projects/data/checkpoints/'
 SEED = 42
 random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)
 SPECIAL_TOKENS = ['MASK', 'PAD']        

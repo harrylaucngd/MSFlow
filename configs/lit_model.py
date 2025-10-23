@@ -13,11 +13,11 @@ COND_DIM = 4096 #1449 #12 with sa_score
 n_layers=12
 n_heads=12
 mlp = 2048
-dropout = 0.4
+dropout = 0.3
 max_len  = MAX_LEN
 
-max_steps =  1000 #ft msg # 120000 
-lr = 1e-6 #5e-4
+max_steps =  150000 #ft msg # 120000 
+lr = 1e-3 #5e-4
 warmup_ratio = 0.1
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 scheduler=PolynomialConvexScheduler(n=1.0)

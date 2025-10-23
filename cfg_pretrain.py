@@ -23,39 +23,39 @@ torch.set_float32_matmul_precision('medium')
 
 def main():
     df = pd.read_parquet(data.data_path)
+    df_val = pd.read_parquet('/home/mqawag/projects/data/combined_data_val_128_encoded.parquet')
     VOCAB_SIZE = len(TOK2ID)
     df = df[df["seq_len"] <= data.MAX_LEN]
     generator = torch.Generator().manual_seed(42)
     encoded = df["encoded"].apply(lambda x: x[:lit_model.MAX_LEN]).tolist()
+    encoded_val= df_val["encoded"].apply(lambda x: x[:lit_model.MAX_LEN]).tolist()
     condition = df.canon_smiles #.canon_smiles # .iloc[:,-13:-1] this is after adding canon smiles/ it was iloc[:,-12:] .SMILES_standard .iloc[:,-1450:-1]  or #conditions_are 11 chem_props or 1449 CP features
+    condition_val = df_val.canon_smiles
     label = [True] * df.shape[0]
-    dataset = CondMolDataset(encoded,condition,label,df.index)
+    label_val = [True] * df_val.shape[0]
+    train_dataset = CondMolDataset(encoded,condition,label,df.index)
+    val_dataset = CondMolDataset(encoded_val,condition_val,label_val,df_val.index)
+    
     # train_val split
-    train_size = int(0.9 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size],generator=generator)
+    # train_size = int(0.9 * len(dataset))
+    # val_size = len(dataset) - train_size
+    # train_dataset, val_dataset = random_split(dataset, [train_size, val_size],generator=generator)
 
 
-    train_loader = DataLoader(train_dataset, batch_size=data.batch_size, shuffle=True, num_workers=5)
-    val_loader = DataLoader(val_dataset, batch_size=data.batch_size, shuffle=False, num_workers=5)
-    print("Length of training set: ", train_size)
-    print("Length of validation set: ", val_size)
+    train_loader = DataLoader(train_dataset, batch_size=data.batch_size, shuffle=True, num_workers=8)
+    val_loader = DataLoader(val_dataset, batch_size=data.batch_size, shuffle=False, num_workers=8)
+    print("Length of training set: ", len(train_dataset))
+    print("Length of validation set: ", len(val_dataset))
 
     wandb_base_dir = "wandb"
-    mlflow_base_dir = 'mlflow_base'
     run_id = None
-    name = f'CFG-MFP_1.4M_canonical_context_len={lit_model.max_len}_uncond_prob={lit_model.uncond_prob}_{lit_model.COND_DIM}_r=2_LR={lit_model.lr}_{lit_model.source}_dim={lit_model.d_model+1}_4gpus'
+    name = f'MSFlow_2.8M_canonical_context_len={lit_model.max_len}_uncond_prob={lit_model.uncond_prob}_{lit_model.COND_DIM}_r=2_LR={lit_model.lr}_{lit_model.source}_dim={lit_model.d_model+1}_8gpus'
     wandb_logger = WandbLogger(
         project="morflow",
         name=f"{name}",
         save_dir=wandb_base_dir,
         resume="allow",
         id=run_id
-    )
-    mlflow_logger = MLFlowLogger(
-    experiment_name="morflow",            # like wandb project
-    run_name=f"{name}",                   # like wandb name
-    tracking_uri="file:./mlruns",         # or "http://127.0.0.1:8080" if running MLflow server
     )
 
     cond_model= CondFlowMolBERTLitModule(
@@ -95,7 +95,7 @@ def main():
 
     ckpt_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
-        filename= name + 'CFG_best_cond_val-{epoch:02d}-{cond_validity:.4f}',
+        filename= name + '_best_cond_val-{epoch:02d}-{cond_validity:.4f}',
         monitor="cond_validity",
         mode="max",
         save_top_k=1,
@@ -109,7 +109,7 @@ def main():
         accelerator="gpu",
         strategy="ddp",
         # precision=16,
-        devices=4, 
+        devices=8, 
         logger=[wandb_logger,mlflow_logger],
         callbacks=[ckpt_callback,early_stop_callback],
     )

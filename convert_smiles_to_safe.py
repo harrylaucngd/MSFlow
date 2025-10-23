@@ -7,13 +7,13 @@ from joblib import Parallel, delayed
 import ast
 # from configs import * 
 from utils.functions import canonicalize
-
+import swifter
 
 SPECIAL_TOKENS = ['MASK', 'PAD']        
 MASK, PAD = SPECIAL_TOKENS
 
 # --- Load existing vocab ---
-vocab_path = "/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/vocab.json"
+vocab_path = "/home/mqawag/projects/morflow2.0/vocab173.json"
 with open(vocab_path, "r") as f:
     vocab_data = json.load(f)
 
@@ -32,7 +32,16 @@ def encode_row(s):
         encoded = safe.encode(s, ignore_stereo=True)
         tokens = list(safe.split(encoded))
         return encoded, tokens, len(tokens)
-    except Exception:
+    except safe.SAFEFragmentationError:
+        # if SAFE fails, skip it
+        return None
+    except safe.SAFEEncodeError:
+        # if SAFE fails, skip it
+        return None
+    except safe.SAFEDecodeError:
+        # if SAFE fails, skip it
+        return None
+    except:
         # if SAFE fails, skip it
         return None
 
@@ -45,37 +54,15 @@ def encode(tokens: list[str], TOK2ID, MAX_LEN) -> list[int]:
     else: 
         return None
 
-
-# --- Read Data ---
-# path = "/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/df_12_chem_props_canon_smiles.parquet"
-# df = pd.read_parquet(path)
-path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/ms_data/fingerprints_from_pretrained_encoder/canopus/canopus_test.parquet'
+path = '/home/mqawag/projects/data/combined_data.parquet'
 df = pd.read_parquet(path)
 
-# --- Parallel Tokenization ---
-results = Parallel(n_jobs=-1)(
-    delayed(encode_row)(s) for s in tqdm(df['smiles'])
-)
+df['results'] = df['canon_smiles'].swifter.apply(encode_row)
+df = df[df['results'].notnull()].copy()
+df[['SAFE', 'safe_tokens', 'seq_len']] = pd.DataFrame(df['results'].tolist(), index=df.index)
+df['encoded'] = df['safe_tokens'].swifter.apply(lambda tokens: encode(tokens,TOK2ID, MAX_LEN))
+df = df[df['encoded'].notnull()].copy()
 
-# drop rows where SAFE encoding failed
-results = [r for r in results if r is not None]
-df = df.iloc[:len(results)].copy()  # align indices
-df[['SAFE', 'safe_tokens', 'seq_len']] = pd.DataFrame(results, index=df.index)
-
-# --- Parallel Encoding of Tokens tok->id ---
-encoded_results = Parallel(n_jobs=-1)(
-    delayed(encode)(tokens, TOK2ID, MAX_LEN) for tokens in tqdm(df['safe_tokens'])
-)
-
-# keep only rows with valid encodings (skip unknown-token cases)
-valid_mask = [res is not None for res in encoded_results]
-df = df[valid_mask].copy()
-df['encoded'] = [res for res in encoded_results if res is not None]
-
-
-# df.to_parquet(
-#     "/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/df_12props_canon_safe_encoding.parquet"
-# )
 df.to_parquet(
-    '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/ms_data/fingerprints_from_pretrained_encoder/canopus/canopus_test_safe_encoded128.parquet'
+    '/home/mqawag/projects/data/combined_data_128_encodedd.parquet'
 )
