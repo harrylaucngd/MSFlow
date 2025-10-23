@@ -1,5 +1,4 @@
 import os
-import json
 import torch
 import pandas as pd
 from pytorch_lightning import Trainer
@@ -10,13 +9,10 @@ from torch.utils.data import DataLoader, random_split
 
 from data import  CondMolDataset
 from modules.cond_lit_model import CondFlowMolBERTLitModule
-from modules.cond_lit_model import CondFlowMolBERT
 from modules.lit_model import FlowMolBERTLitModule
 from configs import data,lit_model
 from pytorch_lightning.callbacks import EarlyStopping
 from configs.data import TOK2ID,ID2TOK
-from torch.utils.data import Subset
-import random
 import torch
 from utils.functions import transfer_weights, transfer_weights_with_adaptive_ln
 
@@ -33,10 +29,9 @@ def main():
     VOCAB_SIZE = len(TOK2ID)
     df = df[df["seq_len"] <= data.MAX_LEN]
     generator = torch.Generator().manual_seed(42)
-    df = df.iloc[:100000,:]   #similar size to the perturbation data sizels -ls
-    # df_conditioned = df[df['has_condition']==True]   #train with samples that have conditions only
+    # df = df.sample(n=800000,random_state=42)  #df.iloc[:100000,:], similar size to the perturbation data size -ls, uncomment if working with non-cp data
     encoded = df["encoded"].apply(lambda x: x[:data.MAX_LEN]).tolist()
-    condition = df.SMILES_standard # iloc[:,-1450:-1]  or #conditions_are 11 chem_props or 1449 CP features
+    condition = df.SMILES_standard # iloc[:,-12:] .SMILES_standard .iloc[:,-1450:-1]  or #conditions_are 11 chem_props or 1449 CP features
     label = [True] * df.shape[0]
     dataset = CondMolDataset(encoded,condition,label,df.index)
     # train_val split
@@ -45,15 +40,15 @@ def main():
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size],generator=generator)
 
 
-    train_loader = DataLoader(train_dataset, batch_size=data.batch_size, shuffle=True, num_workers=8)
-    val_loader = DataLoader(val_dataset, batch_size=data.batch_size, shuffle=False, num_workers=8)
+    train_loader = DataLoader(train_dataset, batch_size=data.batch_size, shuffle=True, num_workers=16)
+    val_loader = DataLoader(val_dataset, batch_size=data.batch_size, shuffle=False, num_workers=16)
     print("Length of training set: ", train_size)
     print("Length of validation set: ", val_size)
 
     wandb_base_dir = "wandb"
     mlflow_base_dir = 'mlflow_base'
     run_id = None
-    name = f'MFP_adaptiveLN_proj_r3_L1024_{lit_model.COND_DIM}_{lit_model.loss}_L={data.MAX_LEN}_{lit_model.source}_layers={lit_model.n_layers}_dim={lit_model.d_model+1}'
+    name = f'FP_1.2M_training_set_adaptiveLN_{lit_model.COND_DIM}_{lit_model.loss}_L={data.MAX_LEN}_{lit_model.source}_layers={lit_model.n_layers}_dim={lit_model.d_model+1}'
     wandb_logger = WandbLogger(
         project="morflow",
         name=f"{name}",
@@ -97,7 +92,7 @@ def main():
     
     early_stop_callback = EarlyStopping(
     monitor="val_loss",      
-    patience=8,              
+    patience=5,              
     mode="min",             
     verbose=True)
 
@@ -108,7 +103,7 @@ def main():
 
     ckpt_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
-        filename= name + 'fine_tuned_best_val_loss-{epoch:02d}-{cond_validity:.4f}',
+        filename= name + '1.2M_fine_tuned_best_val_loss-{epoch:02d}-{cond_validity:.4f}',
         monitor="val_loss",
         mode="min",
         save_top_k=1,

@@ -7,12 +7,8 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, DataStructs, RDKFingerprint
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 from tqdm import tqdm
-from sklearn.decomposition import PCA
 
 
-# pca = PCA(n_components=32)
-
-# Standardize first
 
 class MolDataset(Dataset):
     def __init__(self, encoded_seqs):
@@ -44,14 +40,16 @@ def fast_smiles_to_fps(smiles_list, radius=3, fp_size=1024):
         DataStructs.ConvertToNumpyArray(fp, arr)
         fps_np.append(arr)
 
-    return np.array(fps_np)  # shape: (n_mols, fp_size)
+    return np.array(fps_np)  
 
 
 class CondMolDataset(Dataset):
     def __init__(self, encoded_seqs,conditions,labels, indices = None):
         self.data = torch.tensor(np.array(encoded_seqs),dtype=torch.long)
         # scaler = StandardScaler()
-        cond_scaled = fast_smiles_to_fps(conditions)
+        # cond_scaled = scaler.fit_transform(conditions.to_numpy())
+        # cond_scaled = fast_smiles_to_fps(conditions, radius=2,fp_size=4096)
+        cond_scaled = np.array(conditions, dtype=np.float32)
         self.conditions = torch.tensor(cond_scaled, dtype = torch.float32)
         # self.conditions = torch.tensor(fast_smiles_to_fps(conditions), dtype = torch.float32)
         self.labels =  torch.tensor(np.array(labels), dtype=torch.bool)
@@ -62,11 +60,3 @@ class CondMolDataset(Dataset):
     def __getitem__(self, idx):
         return self.data[idx], self.conditions[idx], self.labels[idx], self.indices[idx]
     
-
-
-
-
-# scaler = StandardScaler()
-# cond_scaled = scaler.fit_transform(np.array(conditions))
-# pca = PCA(n_components=128)  
-# cond_pca = pca.fit_transform(cond_scaled)

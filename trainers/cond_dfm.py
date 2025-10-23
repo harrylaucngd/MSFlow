@@ -2,8 +2,9 @@ import torch
 from torch.nn import CrossEntropyLoss
 from flow_matching.loss import MixturePathGeneralizedKL
 from configs import *
+# from utils.functions import stochastic_drop_condition, zero_cond_to_none
 
-def dfm_step(batch, cond, model, source, loss_fn, scheduler, path, device, mask_token_id, weighted=False, uncond_prob=0.1):
+def dfm_step(batch, cond, model, source, loss_fn, scheduler, path, device, mask_token_id, weighted=False, uncond_prob=0.1, training = False):
     """
     batch: input token ids, shape [B, L]
     cond: condition tensor, shape [B, cond_dim]
@@ -16,27 +17,63 @@ def dfm_step(batch, cond, model, source, loss_fn, scheduler, path, device, mask_
     force_uncond_prob: probability to drop condition for unconditional training
     """
 
+    # B = batch.size(0)
+    # x1 = batch.to(device)
+    # cond = cond.to(device) if cond is not None else None
+
+    # if source == 'masked':
+    #     x0 = torch.full_like(x1, fill_value=mask_token_id)  # fully masked input
+    # else:
+    #     x0 = torch.randint_like(x1, vocab)  # uniform source
+    
+    # t = torch.rand(B, device=device) * (1 - 1e-3)  # avoid t=1
+    # path_sample = path.sample(t=t, x_0=x0, x_1=x1)
+
+    # logits = torch.zeros(B, x1.size(1), model.lm_head.out_features, device=device, dtype=next(model.parameters()).dtype) 
+    # if training:
+    # # # Probabilistically drop condition for unconditional training
+    #     cond, mask = stochastic_drop_condition(cond, uncond_prob)
+    #     if mask is None:  # unconditional-only training
+    #         logits = model(path_sample.x_t, path_sample.t, cond=None)
+    #     else:
+    #         if mask.any():  # conditional subset
+    #             logits[mask] = model(
+    #                 x=path_sample.x_t[mask], 
+    #                 t=path_sample.t[mask], 
+    #                 cond=cond[mask]
+    #             )
+    #         if (~mask).any():  # unconditional subset
+    #             logits[~mask] = model(
+    #                 x=path_sample.x_t[~mask], 
+    #                 t=path_sample.t[~mask], 
+    #                 cond=None,
+    #             )
+    # else:
+    #     cond = zero_cond_to_none(cond)
+    #     logits = model(x=path_sample.x_t, t=path_sample.t, cond=cond)
+
     B = batch.size(0)
     x1 = batch.to(device)
     cond = cond.to(device) if cond is not None else None
 
+    # Source distribution
     if source == 'masked':
-        x0 = torch.full_like(x1, fill_value=mask_token_id)  # fully masked input
+        x0 = torch.full_like(x1, fill_value=mask_token_id)
     else:
-        x0 = torch.randint_like(x1, vocab)  # uniform source
-    
-    t = torch.rand(B, device=device) * (1 - 1e-3)  # avoid t=1
+        x0 = torch.randint_like(x1, model.lm_head.out_features)
+
+    # Sample path
+    t = torch.rand(B, device=device) * (1 - 1e-3)
     path_sample = path.sample(t=t, x_0=x0, x_1=x1)
 
-    # Probabilistically drop condition for unconditional training
-    if cond is not None and uncond_prob > 0:
-        drop_mask = torch.bernoulli(torch.full((B, 1), 0.1, device=device))  # [B,1]
-        cond_input = cond * (1 - drop_mask)  # zero out condition vector for dropped samples
-    else:
-        cond_input = cond
-        
-    logits = model(x=path_sample.x_t, t=path_sample.t, cond=cond_input)
+    # Handle dropping condition for classifier-free guidance
+    if training and cond is not None:
+        drop_mask = torch.rand(B, device=device) < uncond_prob
+        cond = cond.clone()
+        cond[drop_mask] = 0.0  # zero out dropped rows
 
+    # Forward pass: all-zero cond rows are treated as unconditional internally
+    logits = model(x=path_sample.x_t, t=path_sample.t, cond=cond)
     if isinstance(loss_fn, CrossEntropyLoss):
         if not weighted:
             loss = loss_fn(logits.view(-1, logits.size(-1)), x1.view(-1)).mean()

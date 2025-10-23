@@ -9,20 +9,29 @@ class AdaptiveLayerNorm(nn.Module):
         self.eps = eps
         self.ln = nn.LayerNorm(normalized_shape, elementwise_affine=True, eps=eps)
         # condition -> gamma, beta
-        self.cond_mlp = nn.Sequential(
+        self.mlp = nn.Sequential(
             nn.Linear(cond_dim, 2 * normalized_shape),
             nn.ReLU(),
             nn.Linear(2 * normalized_shape, 2 * normalized_shape)
         )
-        nn.init.zeros_(self.cond_mlp[-1].weight)
-        nn.init.zeros_(self.cond_mlp[-1].bias)
+        nn.init.zeros_(self.mlp[-1].weight)
+        nn.init.zeros_(self.mlp[-1].bias)
 
     def forward(self, x, cond):
         # x: [B, L, D], cond: [B, C]
         normalized = self.ln(x)
-        gamma_beta = self.cond_mlp(cond)  # [B, 2*D]
-        gamma, beta = gamma_beta.chunk(2, dim=-1)  # [B, D], [B, D]
 
+        #newly added
+        uncond_mask = (cond.abs().sum(dim=-1) == 0).float().unsqueeze(-1)
+        # if cond is None:
+        #     return normalized 
+        gamma_beta = self.mlp(cond)  # [B, 2*D]
+        gamma, beta = gamma_beta.chunk(2, dim=-1)  # [B, D], [B, D]
+        
+        #newly added
+        gamma = gamma * (1 - uncond_mask)
+        beta = beta * (1 - uncond_mask)
+        
         # expand over sequence length
         gamma = gamma.unsqueeze(1)  # [B, 1, D]
         beta = beta.unsqueeze(1)    # [B, 1, D]
@@ -34,8 +43,8 @@ class AdaptiveLayerNorm(nn.Module):
 class ConditionalTransformerEncoderLayer(nn.TransformerEncoderLayer):
     def __init__(self, d_model, nhead, cond_dim=1024, dim_feedforward=2048, dropout=0.1, batch_first=True):
         super().__init__(d_model, nhead, dim_feedforward, dropout, batch_first=batch_first)
-        # cond_dim = d_model - 1   #dmodel = dmodel + 1 for time embed , used when we project cond using cond_proj_netwrok
-        cond_dim = 1024   # used when there's no cond_proj
+        cond_dim = d_model - 1   #dmodel = dmodel + 1 for time embed , used when we project cond using cond_proj_netwrok
+        # cond_dim = 1024   # used when there's no cond_proj
         # replace norms with adaptive ones
         self.norm1 = AdaptiveLayerNorm(d_model, cond_dim)
         self.norm2 = AdaptiveLayerNorm(d_model, cond_dim)

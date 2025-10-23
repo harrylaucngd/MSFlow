@@ -22,9 +22,7 @@ class CondFlowMolBERT(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(d_model, d_model),
         )
-        # # # Cross attention for conditions
-        # self.cross_attn = nn.MultiheadAttention(embed_dim=d_model, num_heads=13, batch_first=True)
-        # self.cross_attn_ln = nn.LayerNorm(d_model)
+
 
         total_dim = d_model + time_dim
         layer = nn.TransformerEncoderLayer(total_dim, n_heads, mlp_dim, batch_first=True)
@@ -52,14 +50,6 @@ class CondFlowMolBERT(nn.Module):
             # zero_cond_mask = (cond.abs().sum(dim=1) == 0)  # [B], True if zero cond vector
             cond_embed = self.cond_proj(cond)               # [B, d_model]
             cond_embed = cond_embed.unsqueeze(1).expand(-1, L, -1)  # [B, L, d_model] # repeat L times to add the condition to each token
-            
-            # cond_embed = cond_embed.unsqueeze(1)  # [B, 1, d_model] for cross attention
-            # Cross-attention: Query = tokens, Key=Value = condition vector(s)
-            # attn_output, _ = self.cross_attn(query=x_embed, key=cond_embed, value=cond_embed)  # [B, L, d_model]
-            
-            # Combine attention output with tokens embedding (residual)
-            # x_cond = x_embed + attn_output    # for cross attention
-            # x_cond = self.cross_attn_ln(x_cond)
 
             # For zero condition rows, zero out cond_embed
             # cond_embed = cond_embed * (~zero_cond_mask).unsqueeze(1).unsqueeze(2)

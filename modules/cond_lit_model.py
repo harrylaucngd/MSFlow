@@ -1,16 +1,17 @@
 import pytorch_lightning as pl
 import torch
 # from models.cond_molbert import CondFlowMolBERT
-from models.ada_cond_mobert import CondFlowMolBERT
-from trainers import diffusion, dfm, cond_dfm
+# from models.ada_cond_mobert import CondFlowMolBERT
+from models.cfg_molbert import CondFlowMolBERT
+from trainers import  cond_dfm
 from torch.optim import AdamW
 from transformers import get_cosine_schedule_with_warmup
 import torch.nn as nn
 from flow_matching.path import MixtureDiscreteProbPath
 from flow_matching.path.scheduler import PolynomialConvexScheduler
 from utils.metrics import decode_tokens_to_smiles, compute_smiles_metrics
-from utils.sample import generate_mols, cond_generate_mols
-
+from utils.sample import  cond_generate_mols
+from configs.data import MAX_LEN
 from configs import *
 
 class CondFlowMolBERTLitModule(pl.LightningModule):
@@ -24,6 +25,8 @@ class CondFlowMolBERTLitModule(pl.LightningModule):
         n_heads=4,
         mlp=256,
         cond_dim = 1449,
+        max_len = 72,
+        dropout= 0.4,
         uncond_prob = 0.1,
         lr=1e-3,
         warmup_ratio=0.1,
@@ -39,14 +42,15 @@ class CondFlowMolBERTLitModule(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model_name = model_name
-        self.model = CondFlowMolBERT(vocab_size,cond_dim,time_dim, hidden_dim, n_layers, n_heads, mlp,max_len=72,dropout=0.3,use_gates=True)
+        self.model = CondFlowMolBERT(vocab_size,cond_dim,time_dim, hidden_dim, n_layers, n_heads, mlp,max_len=max_len,dropout=dropout)
         self.lr_scheduler = None  # Initialized in on_fit_start
         self.automatic_optimization = False
         self.first_val_batch = None
 
     def configure_optimizers(self):
-        optimizer = AdamW(self.model.parameters(), lr=self.hparams.lr,betas=(0.9, 0.98),weight_decay=0.01)
+        optimizer = AdamW(self.model.parameters(), lr=self.hparams.lr,betas=(0.9, 0.95),weight_decay=0.01)
         return optimizer
+
 
     def on_fit_start(self):
         max_steps = self.trainer.max_steps
@@ -68,13 +72,15 @@ class CondFlowMolBERTLitModule(pl.LightningModule):
                 batch[0], batch[1], self.model,self.hparams.source,self.hparams.loss_fn,self.hparams.scheduler, self.hparams.path, 
                 self.hparams.device,
                 self.hparams.mask_token_id,
-                self.hparams.weighted, self.hparams.uncond_prob
+                self.hparams.weighted, self.hparams.uncond_prob, training = True
             )
             self.log("train_loss", loss.item(), prog_bar=True)
         else:
             raise ValueError(f"Unknown model_name: {self.model_name}")
-
+        
         self.manual_backward(loss)
+        ##added clipping for preventing exploding gradients 
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
         optimizer.step()
         self.lr_scheduler.step()
         optimizer.zero_grad()

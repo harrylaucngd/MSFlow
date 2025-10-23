@@ -25,6 +25,7 @@ print(f"Process {local_rank} using device: cuda:{local_rank}")
 
 checkpoint_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/checkpoints/CrossEntropyLoss()_L=72_uniform_layers=12_dim=768_best-validity-epoch=121-validity=0.9350.ckpt'
 torch.set_float32_matmul_precision('medium')
+generator = torch.Generator().manual_seed(42)
 
 def main():
     df = pd.read_parquet(data.data_path)
@@ -33,13 +34,13 @@ def main():
     df = df.iloc[:100000,:]   #similar size to the perturbation data sizels -ls
     # df_conditioned = df[df['has_condition']==True]   #train with samples that have conditions only
     encoded = df["encoded"].apply(lambda x: x[:data.MAX_LEN]).tolist()
-    condition = df.SMILES_standard # iloc[:,-1450:-1]  or #conditions_are 11 chem_props or 1449 CP features
+    condition = df.iloc[:,-12:] # iloc[:,-1450:-1]  or #conditions_are 11 chem_props or 1449 CP features
     label = [True] * df.shape[0]
     dataset = CondMolDataset(encoded,condition,label,df.index)
     # train_val split
     train_size = int(0.99 * len(dataset))
     val_size = len(dataset) - train_size
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+    train_dataset, val_dataset = random_split(dataset, [train_size, val_size],generator = generator)
 
 
     train_loader = DataLoader(train_dataset, batch_size=data.batch_size, shuffle=True, num_workers=8)
@@ -49,7 +50,7 @@ def main():
 
     wandb_base_dir = "wandb"
     run_id = None
-    name = f'MFP_attn_proj_4096_{lit_model.COND_DIM}_{lit_model.loss}_L={data.MAX_LEN}_{lit_model.source}_layers={lit_model.n_layers}_dim={lit_model.d_model+1}'
+    name = f'Chem_Prop_{lit_model.COND_DIM}_{lit_model.loss}_L={data.MAX_LEN}_{lit_model.source}_layers={lit_model.n_layers}_dim={lit_model.d_model+1}'
     wandb_logger = WandbLogger(
         project="morflow",
         name=f"{name}",

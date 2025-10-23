@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .adaptive import AdaptiveLayerNorm, ConditionalTransformerEncoderLayer, ConditionalTransformerEncoder
-# Make sure AdaptiveLayerNorm and ConditionalTransformerEncoderLayer/ConditionalTransformerEncoder are imported
+from .adaptive import  ConditionalTransformerEncoderLayer, ConditionalTransformerEncoder
 
 class CondFlowMolBERT(nn.Module):
     def __init__(
@@ -19,7 +18,7 @@ class CondFlowMolBERT(nn.Module):
         use_gates=False,
     ):
         super().__init__()
-        self.d_model = d_model
+        self.d_model = 2048
 
         # Embeddings
         self.tok_emb = nn.Embedding(vocab, d_model)
@@ -27,16 +26,17 @@ class CondFlowMolBERT(nn.Module):
         self.time_emb = nn.Linear(1, time_dim)
 
         # Condition embedding MLP: cond_dim -> d_model
-        # self.cond_proj = nn.Sequential(
-        #     nn.Linear(cond_dim, 4096),
-        #     nn.ReLU(),
-        #     nn.LayerNorm(4096),
-        #     nn.Linear(4096, d_model),
-        #     nn.ReLU(),
-        #     nn.LayerNorm(d_model),
-        #     nn.Dropout(dropout),
-        #     nn.Linear(d_model, d_model),
-        # )
+        self.cond_proj = nn.Sequential(
+            nn.Linear(cond_dim, 2 * self.d_model),
+            nn.ReLU(),
+            # nn.Dropout(dropout),
+            nn.LayerNorm(2 * self.d_model),
+            nn.Linear(2 * self.d_model, d_model),
+            nn.ReLU(),
+            nn.LayerNorm(d_model),
+            nn.Dropout(dropout),
+            nn.Linear(d_model, d_model),
+        )
 
         total_dim = d_model + time_dim
         # Conditional transformer encoder layer
@@ -69,12 +69,12 @@ class CondFlowMolBERT(nn.Module):
         h = torch.cat([x_embed, t_embed], dim=-1)             # [B, L, d_model + time_dim]
 
         # # # Condition projection (optional)
-        # if cond is not None and not force_uncond:
-        #     cond_embed = self.cond_proj(cond)                 # [B, d_model]
-        # else:
-        #     cond_embed = None        
+        if cond is not None and not force_uncond:
+            cond_embed = self.cond_proj(cond)                 # [B, d_model]
+        else:
+            cond_embed = None        
 
         # Pass through conditional encoder
-        h = self.encoder(h, condition=cond if not force_uncond else None)   # h = d_model + time (128) , cond (127)
+        h = self.encoder(h, condition=cond_embed if not force_uncond else None)   # h = d_model + time (128) , cond (127)
 
         return self.lm_head(h)

@@ -15,12 +15,7 @@ class WrappedModel(ModelWrapper):
         logits = self.model(x, t)
         return torch.softmax(logits / self.temperature, dim=-1)
 
-
-# class WrappedModel(ModelWrapper):
-#     def forward(self, x: torch.Tensor, t: torch.Tensor, **extras):
-#         return torch.softmax(self.model(x, t), dim=-1)
-    
-#35% validity    
+ 
 @torch.no_grad()
 def sample_flow(num_samples,
     model,
@@ -69,47 +64,6 @@ def sample_flow(num_samples,
 
     return samples.detach().cpu()  # final sample or full trajectory depending on return_intermediates
 
-
-## worked, I trained and got 20% validity
-@torch.no_grad()
-# def sample_flow_custom(model, vocab_size, seq_len, num_samples=1,source_distribution="masked",mask_token_id=0, steps=128,epsilon=1e-3, device='cuda'):
-    
-#     n_samples = num_samples  # increase as needed
-#     if source_distribution == "uniform":
-#         x_t = torch.randint(size=(n_samples, seq_len), high=vocab_size, device=device)
-#     elif source_distribution == "masked":
-#         x_t = torch.full(size=(n_samples, seq_len), fill_value=mask_token_id, device=device)
-#     else:
-#         raise NotImplementedError(f"Unknown source_distribution: {source_distribution}")
-#     t = 0.0
-#     results = [(x_t.clone(), t)]
-#     for _ in range(steps):
-#         t_tensor = torch.full((num_samples,), t, device=device)
-        
-#         # Predict logits from model and get p_t(x)
-#         logits = model(x_t, t_tensor)
-#         p_t = torch.softmax(logits, dim=-1)  # [B, L, V]
-
-#         # One-hot encode x_t
-#         x_one_hot = F.one_hot(x_t, num_classes=vocab_size).float()
-
-#         # Compute update direction u
-#         u = (p_t - x_one_hot) / (1.0 - t + 1e-5)
-
-#         # Step size h
-#         h = min(1.0 - t, 1.0 / steps)
-
-#         # Update probability distribution and sample next x_t
-#         new_probs = x_one_hot + h * u
-#         new_probs = torch.clamp(new_probs, min=1e-6)  # Prevent negatives
-#         new_probs = new_probs / new_probs.sum(dim=-1, keepdim=True)  # Re-normalize
-
-#         x_t = torch.distributions.Categorical(probs=new_probs).sample()
-
-#         t += h
-#         results.append((x_t.clone(), t))
-    
-#     return x_t.detach().cpu()  # or return x_t for just final samples
 
 
 

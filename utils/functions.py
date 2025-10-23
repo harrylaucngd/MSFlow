@@ -1,4 +1,114 @@
 import torch
+from rdkit import Chem
+from collections import Counter
+import torch.nn as nn
+
+def create_finetune_strategy(
+    model: nn.Module,
+    strategy: str = "full",
+    unfreeze_last_n: int = 0,
+    verbose: bool = True,
+):
+    """
+    Configure model parameters for different fine-tuning strategies.
+
+    Args:
+        model: CondFlowMolBERT model instance.
+        strategy: str, one of:
+            - "full"              → fine-tune all layers
+            - "freeze_embeddings" → freeze token/pos/time embeddings
+            - "freeze_encoder"    → train only cond_proj + lm_head
+            - "unfreeze_last_n"   → unfreeze last N encoder layers + head
+            - "lm_head_only"      → train only lm_head
+        unfreeze_last_n: used if strategy='unfreeze_last_n'
+        verbose: print summary of trainable parameters
+
+    Returns:
+        The modified model (in-place).
+    """
+
+    def set_requires_grad(module, flag):
+        for p in module.parameters():
+            p.requires_grad = flag
+
+    # ---- Reset all ----
+    set_requires_grad(model, True)
+
+    # ---- STRATEGIES ----
+    if strategy == "full":
+        # train everything
+        pass
+
+    elif strategy == "freeze_embeddings":
+        set_requires_grad(model.tok_emb, False)
+        set_requires_grad(model.pos_emb, False)
+        set_requires_grad(model.time_emb, False)
+
+    elif strategy == "freeze_encoder":
+        set_requires_grad(model.encoder, False)
+
+    elif strategy == "unfreeze_last_n":
+        # start frozen
+        set_requires_grad(model, False)
+        total_layers = len(model.encoder.layers)
+        if unfreeze_last_n > total_layers:
+            raise ValueError(f"unfreeze_last_n={unfreeze_last_n} > total_layers={total_layers}")
+        for layer in model.encoder.layers[-unfreeze_last_n:]:
+            set_requires_grad(layer, True)
+        set_requires_grad(model.lm_head, True)
+        set_requires_grad(model.cond_proj, True)
+
+    elif strategy == "lm_head_only":
+        # freeze everything except final head
+        set_requires_grad(model, False)
+        set_requires_grad(model.lm_head, True)
+
+    else:
+        raise ValueError(f"Unknown fine-tuning strategy: {strategy}")
+
+    # ---- Summary ----
+    if verbose:
+        total = sum(p.numel() for p in model.parameters())
+        trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        frozen = total - trainable
+        print(f"\n🧠 Fine-tuning strategy: {strategy}")
+        print(f"   Trainable params: {trainable:,} / {total:,} ({trainable/total:.2%})")
+        print(f"   Frozen params:    {frozen:,}")
+
+    return 'Model weights have been freezed according to strategy'
+
+
+def zero_cond_to_none(cond: torch.Tensor) -> torch.Tensor | None:
+    """
+    Converts all-zero condition rows to None for unconditional behavior.
+
+    Args:
+        cond: [B, cond_dim] conditioning tensor
+
+    Returns:
+        cond with zero rows replaced by None, or None if all rows are zero
+    """
+    if cond is None:
+        return None
+
+    nonzero_mask = (cond.abs().sum(dim=1) > 0)  # True if row is non-zero
+
+    if nonzero_mask.sum() == 0:
+        return None
+    return cond
+
+def stochastic_drop_condition(cond: torch.Tensor, uncond_prob: float):
+    """
+    Returns:
+      cond_kept: subset of cond with rows kept (conditional ones)
+      mask: boolean mask of shape [B], True = keep cond, False = drop cond
+    """
+    if cond is None:
+        return None, None
+
+    B = cond.size(0)
+    mask = (torch.rand(B, device=cond.device) > uncond_prob)  # keep some rows
+    return cond, mask
 
 
 def transfer_weights(uncond_model, cond_model, freeze_pretrained=False):
@@ -81,3 +191,55 @@ def transfer_weights_with_adaptive_ln(uncond_model, cond_model, freeze_pretraine
 
 
     print("✅ Transfer completed. AdaptiveLayerNorm initialized from pretrained LayerNorm.")
+
+
+def canonicalize(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    if mol:
+        Chem.RemoveStereochemistry(mol)
+        return Chem.MolToSmiles(mol, canonical=True, isomericSmiles=False)
+    return None 
+
+def canonicalize_safe(smiles: str):
+    try:
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+        Chem.RemoveStereochemistry(mol)
+        return Chem.MolToSmiles(mol, canonical=True, isomericSmiles=False)
+    except Exception:
+        return None
+
+
+from rdkit import Chem
+from collections import Counter
+
+def get_topk_molecules(smiles_list, k=10):
+    """
+    Given a list of SMILES strings (from DiffMS samples), 
+    returns the top-k valid molecules ranked by frequency.
+    
+    Args:
+        smiles_list (list of str): SMILES strings generated for one spectrum.
+        k (int): number of top molecules to return.
+        
+    Returns:
+        list of tuples: [(smiles, count), ...] sorted by count (descending).
+    """
+    valid_smiles = []
+
+    for smi in smiles_list:
+        mol = Chem.MolFromSmiles(smi)
+        if mol is None:
+            continue  # invalid molecule
+        # check if molecule is connected (single fragment)
+        if len(Chem.GetMolFrags(mol)) == 1:
+            valid_smiles.append(Chem.MolToSmiles(mol))  # canonicalize
+
+    # count frequency
+    counts = Counter(valid_smiles)
+
+    # get top-k
+    topk = counts.most_common(k)
+
+    return topk

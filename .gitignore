@@ -4,5 +4,8 @@
 *.txt
 *.png
 wandb/
+mlruns/
 logs/
 figures/
+results/
+pretrained_mist/
