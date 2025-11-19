@@ -17,7 +17,7 @@ from rdkit import Chem
 from rdkit.Chem import MACCSkeys
 from rdkit.DataStructs import TanimotoSimilarity
 from utils.functions import canonicalize, canonicalize_safe
-
+from collections import Counter
 
 
 def compute_maccs_similarity(query_smiles, target_smiles_list):
@@ -126,7 +126,7 @@ def fast_smiles_to_fps(smiles_list, radius=3, fp_size=1024):
     return np.array(fps_np), fps_list
 
 
-morgan_gen1 = GetMorganGenerator(radius=2, fpSize=1024)
+morgan_gen1 = GetMorganGenerator(radius=2, fpSize=2048)
 
 def compute_tanimoto_to_reference(smiles_list, reference_smiles):
     ref_mol = Chem.MolFromSmiles(reference_smiles)
@@ -134,7 +134,7 @@ def compute_tanimoto_to_reference(smiles_list, reference_smiles):
         return np.zeros(len(smiles_list))
 
     ref_fp = morgan_gen1.GetFingerprint(ref_mol)
-    _, fps_list = fast_smiles_to_fps(smiles_list, radius=2, fp_size=1024)
+    _, fps_list = fast_smiles_to_fps(smiles_list, radius=2, fp_size=2048)
     if fps_list is None:
         return np.zeros(len(smiles_list))
 
@@ -149,11 +149,9 @@ def compute_tanimoto_to_reference(smiles_list, reference_smiles):
 
 
 def main():
-    df_test = pd.read_parquet('/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/ms_data/fingerprints_from_pretrained_encoder/msg/msg_test_safe_encoded.parquet') #its called chembl but actually zinc
-
-    # checkpoint_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/checkpoints/new/CFG-MFP_1.2M_canonical_context_len=72_uncond_prob=0.1_4096_LR=0.0005_uniform_dim=768CFG_best_val_loss-epoch=66-cond_validity=0.9297.ckpt'
-    ckpt_dir = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/checkpoints/'
-    checkpoint_path = 'new/context_128/CFG-MFP_1.4M_canonical_context_len=128_uncond_prob=0.1_4096_r=2_LR=0.0001_uniform_dim=1536_4gpusCFG_best_val_loss-epoch=81-cond_validity=0.8516.ckpt'
+    df_test = pd.read_parquet('/hpfs/userws/mqawag/output/data/canopus_test_128_encoded.parquet') #its called chembl but actually zinc
+    ckpt_dir = '/hpfs/userws/mqawag/output/checkpoints/'
+    checkpoint_path = 'MSFlow_2.8M_canonical_context_len=128_uncond_prob=0.1_4096_r=2_LR=0.0008_uniform_dim=1536_8gpus_best_cond_val-epoch=53-cond_validity=0.9707.ckpt'
     model = CondFlowMolBERTLitModule.load_from_checkpoint(ckpt_dir + checkpoint_path)
     cfm = model.model
     cfm.eval()
@@ -163,14 +161,11 @@ def main():
     # Prepare conditions
     # -------------------------
     df_test = df_test[df_test.seq_len<=128]
-    # Keep only the first occurrence of each 'inchi'
-    # df_unique = df_test.drop_duplicates(subset='inchi', keep='first')
 
     # df_test.iloc[:5].append(df_test.iloc[6:], ignore_index=True)
-    df_test = df_test[:1000]
-    df_test['canon_smiles']= df_test['smiles'].swifter.apply(canonicalize_safe)
+    # df_test['canon_smiles']= df_test['smiles'].swifter.apply(canonicalize_safe)
     query_smiles = df_test.canon_smiles
-    fps_list = df_test["fingerprint"].tolist() 
+    fps_list = df_test["fingerprint_ft"].tolist() 
     fps_np = np.array(fps_list, dtype=np.float32) 
     # fps_np, _ = fast_smiles_to_fps(query_smiles, radius=2, fp_size=4096)
     conds = torch.tensor(fps_np, dtype=torch.float32).to(device)
@@ -207,13 +202,12 @@ def main():
         )
         _, smiles = decode_tokens_to_smiles(samples, ID2TOK=ID2TOK, TOK2ID=TOK2ID, PAD=PAD)
         smiles = [canonicalize(s) for s in smiles]
-        smiles = [canonicalize_safe(s) for s in smiles]
+        # smiles = [canonicalize_safe(s) for s in smiles]
         smiles = [s for s in smiles if s is not None]  # remove failed molecules
 
         torch.cuda.empty_cache()
         if len(smiles) > 0:
             print(f"{len(smiles)} mols are generated")
-            print(smiles[0])
             sims = compute_tanimoto_to_reference(smiles, query_smiles.iloc[i])
             max_idx = np.argmax(sims)
             maxsim_smiles_list.append(smiles[max_idx])
@@ -267,7 +261,7 @@ def main():
 
     results_df["smiles_match"] = (results_df["query_smiles"] == results_df["maxsim_smiles"]).astype(int)
     # Save to CSV
-    results_df.to_csv("results/FP/mass_spec/Lfp4096_r2_canopus_test.csv", index=False)
+    results_df.to_csv("/hpfs/userws/mqawag/output/results/canopus_test.csv", index=False)
     print("✅ Results saved")
     print("Reconstruction_success = ", len(results_df[results_df["smiles_match"]==1]))
 

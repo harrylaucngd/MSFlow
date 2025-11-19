@@ -2,19 +2,18 @@ import os
 import torch
 import pandas as pd
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import WandbLogger,  MLFlowLogger
+from pytorch_lightning.loggers import WandbLogger
 
 from pytorch_lightning.callbacks import ModelCheckpoint
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 
 from data import  CondMolDataset
 from modules.cond_lit_model import CondFlowMolBERTLitModule
 from configs import data,lit_model
 from pytorch_lightning.callbacks import EarlyStopping
-from configs.data import TOK2ID,ID2TOK
+from configs.data import TOK2ID
 import torch
-
-
+import numpy as np
 local_rank = int(os.environ.get("LOCAL_RANK", 0))
 print(f"Process {local_rank} using device: cuda:{local_rank}")
 
@@ -22,34 +21,34 @@ print(f"Process {local_rank} using device: cuda:{local_rank}")
 torch.set_float32_matmul_precision('medium')
 
 def main():
-    df = pd.read_parquet(data.data_path)
-    df_val = pd.read_parquet('/home/mqawag/projects/data/combined_data_val_128_encoded.parquet')
+    df_orig = pd.read_pickle(data.data_path)
+    # df_val = pd.read_parquet('/hpfs/userws/mqawag/output/data/pretrain/combined_val_data.parquet')
     VOCAB_SIZE = len(TOK2ID)
-    df = df[df["seq_len"] <= data.MAX_LEN]
-    generator = torch.Generator().manual_seed(42)
+    df = df_orig[df_orig['split']!='val']
+    df_val = df_orig[df_orig['split']=='test']
     encoded = df["encoded"].apply(lambda x: x[:lit_model.MAX_LEN]).tolist()
     encoded_val= df_val["encoded"].apply(lambda x: x[:lit_model.MAX_LEN]).tolist()
-    condition = df.canon_smiles #.canon_smiles # .iloc[:,-13:-1] this is after adding canon smiles/ it was iloc[:,-12:] .SMILES_standard .iloc[:,-1450:-1]  or #conditions_are 11 chem_props or 1449 CP features
-    condition_val = df_val.canon_smiles
-    label = [True] * df.shape[0]
-    label_val = [True] * df_val.shape[0]
-    train_dataset = CondMolDataset(encoded,condition,label,df.index)
-    val_dataset = CondMolDataset(encoded_val,condition_val,label_val,df_val.index)
-    
-    # train_val split
-    # train_size = int(0.9 * len(dataset))
-    # val_size = len(dataset) - train_size
-    # train_dataset, val_dataset = random_split(dataset, [train_size, val_size],generator=generator)
-
-
-    train_loader = DataLoader(train_dataset, batch_size=data.batch_size, shuffle=True, num_workers=8)
-    val_loader = DataLoader(val_dataset, batch_size=data.batch_size, shuffle=False, num_workers=8)
+    # condition = df.canon_smiles #.canon_smiles # .iloc[:,-13:-1] this is after adding canon smiles/ it was iloc[:,-12:] .SMILES_standard .iloc[:,-1450:-1]  or #conditions_are 11 chem_props or 1449 CP features
+    # condition_val = df_val.canon_smiles
+    # train_cddds = pd.read_csv('/hpfs/userws/mqawag/output/data/pretrain/combined_data_cddd.csv')
+    # val_cddds = pd.read_csv('/hpfs/userws/mqawag/output/data/pretrain/combined_data_val_cddd.csv')
+    condition =  np.array(df.spectrum_vector.to_list())      #train_cddds.iloc[:,3:].to_numpy()
+    condition_val =  np.array(df_val.spectrum_vector.to_list())      # val_cddds.iloc[:,3:].to_numpy()
+    condition_normalized = condition/condition.max(axis=1, keepdims=True)
+    condition_val_normalized = condition_val/condition_val.max(axis=1, keepdims=True)
+    print("Creating datasets")
+    train_dataset = CondMolDataset(encoded,condition)
+    val_dataset = CondMolDataset(encoded_val,condition_val)
+    print("Created datasets")
+    train_loader = DataLoader(train_dataset, batch_size=data.batch_size, shuffle=True, num_workers=14, pin_memory = True)
+    val_loader = DataLoader(val_dataset, batch_size=data.batch_size, shuffle=False, num_workers=14, pin_memory = True)
     print("Length of training set: ", len(train_dataset))
     print("Length of validation set: ", len(val_dataset))
 
     wandb_base_dir = "wandb"
     run_id = None
-    name = f'MSFlow_2.8M_canonical_context_len={lit_model.max_len}_uncond_prob={lit_model.uncond_prob}_{lit_model.COND_DIM}_r=2_LR={lit_model.lr}_{lit_model.source}_dim={lit_model.d_model+1}_8gpus'
+    # name = f'MSFlow_2.8M_canonical_context_len={lit_model.max_len}_uncond_prob={lit_model.uncond_prob}_{lit_model.COND_DIM}_r=2_LR={lit_model.lr}_{lit_model.source}_dim={lit_model.d_model+1}_countFP'
+    name = f'MSFlow_2.8M_LR={lit_model.lr}_{lit_model.source}_dim={lit_model.d_model+1}_smallbinned_conddimto128'
     wandb_logger = WandbLogger(
         project="morflow",
         name=f"{name}",
@@ -109,8 +108,8 @@ def main():
         accelerator="gpu",
         strategy="ddp",
         # precision=16,
-        devices=8, 
-        logger=[wandb_logger,mlflow_logger],
+        devices=4, 
+        logger=[wandb_logger],
         callbacks=[ckpt_callback,early_stop_callback],
     )
 

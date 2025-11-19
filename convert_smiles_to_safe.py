@@ -2,12 +2,10 @@ import pandas as pd
 import safe  
 import json
 from tqdm import tqdm
-from joblib import Parallel, delayed
-# from utils import *
 import ast
 # from configs import * 
 from utils.functions import canonicalize
-import swifter
+from swifter import swifter
 
 SPECIAL_TOKENS = ['MASK', 'PAD']        
 MASK, PAD = SPECIAL_TOKENS
@@ -31,38 +29,42 @@ def encode_row(s):
         s = canonicalize(s)
         encoded = safe.encode(s, ignore_stereo=True)
         tokens = list(safe.split(encoded))
-        return encoded, tokens, len(tokens)
+        return  encoded, tokens, len(tokens)
     except safe.SAFEFragmentationError:
+        print("fragm error found")
         # if SAFE fails, skip it
         return None
     except safe.SAFEEncodeError:
+        print("encoder error found")
         # if SAFE fails, skip it
         return None
     except safe.SAFEDecodeError:
+        print("decoder error found")
         # if SAFE fails, skip it
         return None
     except:
+        print("safe error found")
         # if SAFE fails, skip it
         return None
 
 def encode(tokens: list[str], TOK2ID, MAX_LEN) -> list[int]:
     """Convert tokens to IDs, skip sample if any token not in vocab."""
     if any(t not in TOK2ID for t in tokens):
+        print("new token found")
         return None
     if(len(tokens)<= MAX_LEN):
         return [TOK2ID[t] for t in tokens] + [TOK2ID[PAD]] * (MAX_LEN - len(tokens))
     else: 
         return None
 
-path = '/home/mqawag/projects/data/combined_data.parquet'
-df = pd.read_parquet(path)
-
+path = "/hpfs/userws/mqawag/output/data/msg_canopus_ms_sum.pkl"
+df = pd.read_pickle(path)
+# df = df[df.split == 'test']
 df['results'] = df['canon_smiles'].swifter.apply(encode_row)
 df = df[df['results'].notnull()].copy()
-df[['SAFE', 'safe_tokens', 'seq_len']] = pd.DataFrame(df['results'].tolist(), index=df.index)
+df['SAFE'], df['safe_tokens'], df['seq_len'] = zip(*(df['results']))
+df.drop(columns=['results'],inplace= True)
 df['encoded'] = df['safe_tokens'].swifter.apply(lambda tokens: encode(tokens,TOK2ID, MAX_LEN))
 df = df[df['encoded'].notnull()].copy()
-
-df.to_parquet(
-    '/home/mqawag/projects/data/combined_data_128_encodedd.parquet'
-)
+print("file successfully saved")
+df.to_pickle('/hpfs/userws/mqawag/output/data/msg_canopus_ms_sum_safe.pkl')

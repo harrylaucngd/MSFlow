@@ -15,10 +15,10 @@ class CondFlowMolBERT(nn.Module):
 
         # Condition embedding MLP
         self.cond_proj = nn.Sequential(
-            nn.Linear(cond_dim, 4096),
+            nn.Linear(cond_dim, 128), # for all exps : counts, bits, cdddds 4096
             nn.ReLU(),
-            nn.LayerNorm(4096),
-            nn.Linear(4096, d_model),
+            nn.LayerNorm(128),
+            nn.Linear(128, d_model),
             nn.ReLU(),
             nn.LayerNorm(d_model),
             nn.Dropout(dropout),

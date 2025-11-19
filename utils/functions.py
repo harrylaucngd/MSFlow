@@ -3,6 +3,71 @@ from rdkit import Chem
 from collections import Counter
 import torch.nn as nn
 
+def gumbel_sigmoid(logits, temperature=0.5, hard=False):
+    gumbel_noise = -torch.log(-torch.log(torch.rand_like(logits) + 1e-10) + 1e-10)
+    y = torch.sigmoid((torch.log(logits + 1e-10) - torch.log(1 - logits + 1e-10) + gumbel_noise) / temperature)
+    if hard:
+        y_hard = (y > 0.5).float()
+        y = y_hard.detach() - y.detach() + y
+    return y
+
+
+def weighted_bce(preds, targets,pos_weight=5.0):
+    eps = 1e-8 
+    loss = - (pos_weight * targets *torch.log(preds + eps) + (1 - targets)*torch.log(1 - preds + eps) )
+    return loss.mean()
+
+def batch_to_device(batch, device):
+    """
+    Recursively move a batch (dict, list, tuple, tensor) to the given device.
+    """
+    if isinstance(batch, torch.Tensor):
+        return batch.to(device)
+    elif isinstance(batch, dict):
+        return {k: batch_to_device(v, device) for k, v in batch.items()}
+    elif isinstance(batch, list):
+        return [batch_to_device(v, device) for v in batch]
+    elif isinstance(batch, tuple):
+        return tuple(batch_to_device(v, device) for v in batch)
+    else:
+        return batch 
+
+def replace_sigmoid_with_tanh(module):
+    for name, child in module.named_children():
+        if isinstance(child, nn.Sigmoid):
+            setattr(module, name, nn.Tanh())
+        else:
+            replace_sigmoid_with_tanh(child)
+
+
+
+def tanimoto_similarity(pred_fp, true_fp, threshold=0.5):
+    pred_fp = (pred_fp.detach().cpu().numpy() > threshold).astype(np.uint8)
+    true_fp = (true_fp.detach().cpu().numpy() > 0).astype(np.uint8)
+
+    sims = []
+    B, d = pred_fp.shape
+
+    for p, t in zip(pred_fp, true_fp):
+        # SAFE bitstring construction
+        bitstr_p = ''.join('1' if x else '0' for x in p)
+        bitstr_t = ''.join('1' if x else '0' for x in t)
+
+        # Debug (optional)
+        # print("Expected length:", d, "Actual:", len(bitstr_p))
+
+        assert len(bitstr_p) == d
+        assert len(bitstr_t) == d
+
+        p_bits = DataStructs.CreateFromBitString(bitstr_p)
+        t_bits = DataStructs.CreateFromBitString(bitstr_t)
+
+        sims.append(DataStructs.FingerprintSimilarity(p_bits, t_bits))
+
+    return np.mean(sims)
+
+
+
 def create_finetune_strategy(
     model: nn.Module,
     strategy: str = "full",
@@ -161,20 +226,6 @@ def transfer_weights_with_adaptive_ln(uncond_model, cond_model, freeze_pretraine
         if hasattr(l_pre, 'norm2') and hasattr(l_cond, 'norm2'):
             l_cond.norm2.ln.weight.data.copy_(l_pre.norm2.weight)
             l_cond.norm2.ln.bias.data.copy_(l_pre.norm2.bias)
-
-        # Optional: zero the adaptive MLP to start with identity
-        # if hasattr(l_cond.norm1, 'mlp') and l_cond.norm1.mlp is not None:
-        #     for m in l_cond.norm1.mlp[-1]:
-        #         if isinstance(m, torch.nn.Linear):
-        #             torch.nn.init.zeros_(m.weight)
-        #             torch.nn.init.zeros_(m.bias)
-        # if hasattr(l_cond.ln.norm2, 'mlp') and l_cond.norm2.mlp is not None:
-        #     for m in l_cond.norm2.mlp[-1]:
-        #         if isinstance(m, torch.nn.Linear):
-        #             torch.nn.init.zeros_(m.weight)
-        #             torch.nn.init.zeros_(m.bias)
-
-    # 3️⃣ LM head
     try:
         cond_model.lm_head.weight.data.copy_(uncond_model.lm_head.weight)
     except Exception as e:
@@ -190,7 +241,7 @@ def transfer_weights_with_adaptive_ln(uncond_model, cond_model, freeze_pretraine
                 param.requires_grad = False
 
 
-    print("✅ Transfer completed. AdaptiveLayerNorm initialized from pretrained LayerNorm.")
+    print("Transfer completed. AdaptiveLayerNorm initialized from pretrained LayerNorm.")
 
 
 def canonicalize(smiles):
@@ -211,35 +262,3 @@ def canonicalize_safe(smiles: str):
         return None
 
 
-from rdkit import Chem
-from collections import Counter
-
-def get_topk_molecules(smiles_list, k=10):
-    """
-    Given a list of SMILES strings (from DiffMS samples), 
-    returns the top-k valid molecules ranked by frequency.
-    
-    Args:
-        smiles_list (list of str): SMILES strings generated for one spectrum.
-        k (int): number of top molecules to return.
-        
-    Returns:
-        list of tuples: [(smiles, count), ...] sorted by count (descending).
-    """
-    valid_smiles = []
-
-    for smi in smiles_list:
-        mol = Chem.MolFromSmiles(smi)
-        if mol is None:
-            continue  # invalid molecule
-        # check if molecule is connected (single fragment)
-        if len(Chem.GetMolFrags(mol)) == 1:
-            valid_smiles.append(Chem.MolToSmiles(mol))  # canonicalize
-
-    # count frequency
-    counts = Counter(valid_smiles)
-
-    # get top-k
-    topk = counts.most_common(k)
-
-    return topk

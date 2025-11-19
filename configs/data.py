@@ -1,11 +1,10 @@
 import random, numpy as np, torch
 import json
 
-# data_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/df_12props_canon_safe_encoding.parquet'
-# data_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/data/df_12props_canon_safe_encoding_filtered_ms.parquet'
-data_path = '/home/mqawag/projects/data/combined_data_128_encoded.parquet'
+# data_path = '/hpfs/userws/mqawag/output/data/pretrain/combined_training_data.parquet' #cddd
+data_path = '/hpfs/userws/mqawag/output/data/msg_canopus_ms_sum_safe.pkl'
 vocab_path = '/home/mqawag/projects/morflow2.0/vocab173.json'
-output_path = '/home/mqawag/projects/data/checkpoints/'
+output_path = '/hpfs/userws/mqawag/output/checkpoints/'
 SEED = 42
 random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)
 SPECIAL_TOKENS = ['MASK', 'PAD']        

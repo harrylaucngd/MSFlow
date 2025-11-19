@@ -7,18 +7,18 @@ from configs.data import MAX_LEN
 
 model_name = 'dfm'
 source = 'uniform' #masked
-d_model= 1535 # must be divisble by num of heads, +1 for time embedding
+d_model= 1535 #767direct #1535 # must be divisble by num of heads, +1 for time embedding
 vocab = 173
-COND_DIM = 4096 #1449 #12 with sa_score
-n_layers=12
-n_heads=12
-mlp = 2048
+COND_DIM = 29600 # 4096 , 1449 #12 with sa_score
+n_layers=6  #12
+n_heads=8  #12
+mlp = 2048  
 dropout = 0.3
 max_len  = MAX_LEN
 
-max_steps =  150000 #ft msg # 120000 
-lr = 1e-3 #5e-4
-warmup_ratio = 0.1
+max_steps =  10000 #200000 cddd #ft msg # 120000 
+lr = 1e-4 #8e-4
+warmup_ratio = 0.08
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 scheduler=PolynomialConvexScheduler(n=1.0)
 path = MixtureDiscreteProbPath(scheduler=PolynomialConvexScheduler(n=1.0))

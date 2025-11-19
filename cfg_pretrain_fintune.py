@@ -2,7 +2,7 @@ import os
 import torch
 import pandas as pd
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import WandbLogger,  MLFlowLogger
+from pytorch_lightning.loggers import WandbLogger
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader, random_split
@@ -17,7 +17,8 @@ from utils.functions import create_finetune_strategy
 
 local_rank = int(os.environ.get("LOCAL_RANK", 0))
 print(f"Process {local_rank} using device: cuda:{local_rank}")
-checkpoint_path = '/lustre/groups/ml01/workspace/ghaith.mqawass/2025_ghaith_de_novo_design/checkpoints/new/context_128/CFG-MFP_1.4M_canonical_context_len=128_uncond_prob=0.1_4096_r=2_LR=0.0001_uniform_dim=1536_4gpusCFG_best_val_loss-epoch=81-cond_validity=0.8516.ckpt'
+ckpt_dir = '/hpfs/userws/mqawag/output/checkpoints/'
+checkpoint_path = ckpt_dir + 'MSFlow_2.8M_canonical_context_len=128_uncond_prob=0.1_4096_r=2_LR=0.0008_uniform_dim=1536_8gpus_best_cond_val-epoch=53-cond_validity=0.9707.ckpt'
 torch.set_float32_matmul_precision('medium')
 
 def main():
@@ -28,19 +29,14 @@ def main():
     df.drop(columns=["index"], inplace=True)
     generator = torch.Generator().manual_seed(42)
     encoded = df["encoded"].apply(lambda x: x[:lit_model.MAX_LEN]).tolist()
-    condition = df.fingerprint.tolist()   
-    label = [True] * df.shape[0]
-    dataset = CondMolDataset(encoded,condition,label,df.index)
-    # train_val split
-    train_size = int(0.95 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size],generator=generator)
+    condition = df.fingerprint_ft.tolist()   
+    dataset = CondMolDataset(encoded,condition)
 
 
-    train_loader = DataLoader(train_dataset, batch_size=data.batch_size, shuffle=True, num_workers=8)
-    val_loader = DataLoader(val_dataset, batch_size=data.batch_size, shuffle=False, num_workers=8)
-    print("Length of training set: ", train_size)
-    print("Length of validation set: ", val_size)
+    train_loader = DataLoader(dataset, batch_size=data.batch_size, shuffle=True, num_workers=8)
+    val_loader = DataLoader(dataset, batch_size=data.batch_size, shuffle=False, num_workers=8)
+    print("Length of training set: ", len(dataset))
+    print("Length of validation set: ", len(dataset))
 
 
     cond_model= CondFlowMolBERTLitModule(
@@ -69,11 +65,11 @@ def main():
     checkpoint = CondFlowMolBERTLitModule.load_from_checkpoint(checkpoint_path)
     cond_model.model.load_state_dict(checkpoint.model.state_dict())
     # model =  checkpoint.model
-    ft_strategy = "freeze_encoder"
+    ft_strategy = "full"
     create_finetune_strategy(cond_model.model, strategy=ft_strategy, unfreeze_last_n=1)
     early_stop_callback = EarlyStopping(
     monitor="val_loss",      
-    patience=4,              
+    patience=3,              
     mode="min",             
     verbose=True)
 
@@ -83,20 +79,14 @@ def main():
 
 
     wandb_base_dir = "wandb"
-    mlflow_base_dir = 'mlflow_base'
     run_id = None
-    name = f'Finetune_{ft_strategy}_msg_context_len={lit_model.max_len}_uncond_prob={lit_model.uncond_prob}_{lit_model.COND_DIM}_r=2_LR={lit_model.lr}_{lit_model.source}_dim={lit_model.d_model+1}_4gpus'
+    name = f'Finetuned_{ft_strategy}_canopus_context_len={lit_model.max_len}_uncond_prob={lit_model.uncond_prob}_{lit_model.COND_DIM}_r=2_LR={lit_model.lr}_{lit_model.source}_dim={lit_model.d_model+1}_4gpus'
     wandb_logger = WandbLogger(
         project="morflow",
         name=f"{name}",
         save_dir=wandb_base_dir,
         resume="allow",
         id=run_id
-    )
-    mlflow_logger = MLFlowLogger(
-    experiment_name="morflow",            # like wandb project
-    run_name=f"{name}",                   # like wandb name
-    tracking_uri="file:./mlruns",         # or "http://127.0.0.1:8080" if running MLflow server
     )
 
 
@@ -122,7 +112,7 @@ def main():
         strategy="ddp",
         # precision=16,
         devices=1, 
-        logger=[wandb_logger,mlflow_logger],
+        logger=[wandb_logger],
         callbacks=[ckpt_callback,early_stop_callback],
     )
 

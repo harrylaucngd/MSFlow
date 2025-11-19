@@ -3,6 +3,8 @@ from typing import List, Tuple, Dict, Collection
 import numpy as np
 from rdkit import Chem, RDLogger, DataStructs
 from rdkit.Chem import AllChem
+from rdkit import Chem
+from collections import Counter
 from safe import decode as safe_decode, SAFEDecodeError
 
 # Mute RDKit logging
@@ -92,3 +94,35 @@ def compute_smiles_metrics(
         "uniqueness": len(unique_smiles) / len(valid_smiles),
         "diversity": diversity,
     }
+
+
+
+def get_topk_molecules(smiles_list, k=10):
+    """
+    Given a list of SMILES strings (from DiffMS samples), 
+    returns the top-k valid molecules ranked by frequency.
+    
+    Args:
+        smiles_list (list of str): SMILES strings generated for one spectrum.
+        k (int): number of top molecules to return.
+        
+    Returns:
+        list of tuples: [(smiles, count), ...] sorted by count (descending).
+    """
+    valid_smiles = []
+
+    for smi in smiles_list:
+        mol = Chem.MolFromSmiles(smi)
+        if mol is None:
+            continue  # invalid molecule
+        # check if molecule is connected (single fragment)
+        if len(Chem.GetMolFrags(mol)) == 1:
+            valid_smiles.append(Chem.MolToSmiles(mol))  # canonicalize
+
+    # count frequency
+    counts = Counter(valid_smiles)
+
+    # get top-k
+    topk = counts.most_common(k)
+
+    return topk

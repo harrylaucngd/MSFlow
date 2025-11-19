@@ -1,9 +1,6 @@
 import pytorch_lightning as pl
 import torch
-# from models.cond_molbert import CondFlowMolBERT
 # from models.ada_cond_mobert import CondFlowMolBERT
-from models.cfg_molbert import CondFlowMolBERT
-from trainers import  cond_dfm
 from torch.optim import AdamW
 from transformers import get_cosine_schedule_with_warmup
 import torch.nn as nn
@@ -13,6 +10,8 @@ from utils.metrics import decode_tokens_to_smiles, compute_smiles_metrics
 from utils.sample import  cond_generate_mols
 from configs.data import MAX_LEN
 from configs import *
+from models.cfg_molbert import CondFlowMolBERT
+from trainers import  cond_dfm
 
 class CondFlowMolBERTLitModule(pl.LightningModule):
     def __init__(
@@ -98,6 +97,7 @@ class CondFlowMolBERTLitModule(pl.LightningModule):
                 self.hparams.weighted, self.hparams.uncond_prob
 
             )
+        print("validation step running")
         self.log("val_loss", loss, prog_bar=True, on_step=False, on_epoch=True,sync_dist=True)
         return loss
     
