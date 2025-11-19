@@ -1,1 +1,1 @@
-## FM framewrok for guided de-novo drug design implemented with PyTorch Lightning
+## MSFlow, a framewrok for guided de-novo drug elucidation from MassSpec data
