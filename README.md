@@ -3,8 +3,7 @@ This is the codebase for our preprint: [MSFlow: flow matching framework for guid
 For running the repo please follow the instructions:
 ## Environment installiation:
    - Install conda/miniconda if needed
-   - Use flow.yml to create the necessary conda environment for Pre-training/Inference using this codebase:
-     ```
+   - Use flow.yml to create the necessary conda environment for Pre-training/Inference using this codebase: ```
     conda env create -f flow.yml
     conda activate flow
     ```
@@ -14,7 +13,7 @@ For running the repo please follow the instructions:
 - For training the pipeline of encoder/decoder using CDDDs representation, you need to first extract cddds for all training/validation/test datasets as illustrated in the repository [CDDDs](https://github.com/jrwnter/cddd)
 - For training the (MS-Molecule) decoder, you need to use [detect_bounds.py](diffms_scripts/detect_bounds.py) and then [extract_ms.py](diffms_scripts/extract_ms.py) to embed MS into vectorized form. You can then use [convert_smiles_to_safe.py](convert_smiles_to_safe.py) script for preproccessing the resulting data and converting smiles into SAFE representation.
 ## Running the code
-For pretraining (ECFP-molecule/CDDDs-molecule) decoder you can run [cfg_pretrain.py](cfg_pretrain.py). You will need to set the paths in[config.py](configs/data.py) to match the location of preprocessed data directory. 
+For pretraining (ECFP-molecule/CDDDs-molecule) decoder you can run [cfg_pretrain.py](cfg_pretrain.py). You will need to set the paths in [config.py](configs/data.py) to match the location of preprocessed data directory. 
 For pretraining or the MIST encoder (MS-ECFPS/MS-CDDDs) you can run ([train_tune_enc_fp.py]([diffms_scripts/train_tune_enc_fp.py)
 /[train_enc_cddd.py]([diffms_scripts/train_enc_cddd.py)).
 For pretraining the (MS-Molecule)
