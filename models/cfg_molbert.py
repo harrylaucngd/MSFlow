@@ -76,32 +76,3 @@ class CondFlowMolBERT(nn.Module):
         h = self.encoder(h, condition=cond_embed if cond_embed is not None else None)
         return self.lm_head(h)
 
-    # def forward(
-    #     self,
-    #     x: torch.Tensor,
-    #     t: torch.Tensor,
-    #     cond: torch.Tensor = None,
-    # ) -> torch.Tensor:
-    #     """
-    #     Forward pass with optional classifier-free dropout (training mode).
-    #     """
-    #     B, L = x.shape
-
-    #     # Token + position embeddings
-    #     tok_embed = self.tok_emb(x)
-    #     pos_ids = torch.arange(L, device=x.device).unsqueeze(0).expand(B, -1)
-    #     pos_embed = self.pos_emb(pos_ids)
-    #     x_embed = tok_embed + pos_embed
-
-    #     # Time embeddings
-    #     t_embed = self.time_emb(t.unsqueeze(-1))
-    #     t_embed = t_embed.unsqueeze(1).expand(-1, L, -1)
-
-    #     # Combine embeddings
-    #     h = torch.cat([x_embed, t_embed], dim=-1)
-
-    #     cond_embed = self.cond_proj(cond) if cond is not None else None
-
-    #     # Pass through transformer
-    #     h = self.encoder(h, condition = cond_embed if cond_embed is not None else None)
-    #     return self.lm_head(h)
