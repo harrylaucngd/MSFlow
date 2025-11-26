@@ -15,8 +15,6 @@ class MolDataset(Dataset):
     
 
 
-
-
 class CondMolDataset(Dataset):
     def __init__(self, encoded_seqs,conditions):
         self.data = torch.tensor(np.array(encoded_seqs),dtype=torch.long)
