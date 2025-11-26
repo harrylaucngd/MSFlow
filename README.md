@@ -3,10 +3,11 @@ This is the codebase for our preprint: [MSFlow: flow matching framework for guid
 For running the repo please follow the instructions:
 ## Environment installiation:
    - Install conda/miniconda if needed
-   - Use flow.yml to create the necessary conda environment for Pre-training/Inference using this codebase: ```
+   - Use flow.yml to create the necessary conda environment for Pre-training/Inference using this codebase:
+```
     conda env create -f flow.yml
     conda activate flow
-    ```
+```
 ## Data download/preprocessing
 - To download data used for training MSFlow, please follow the same steps for download/preprocessing of data as illustrared in the [DiffMS] repository (https://github.com/coleygroup/DiffMS). You need to clone DiffMS repository into the [diffms_scripts](diffms_scripts) directory for obtaining identical train/validation and also test benchmarks for inference and for running [diffms_scripts](diffms_scripts). 
 - After downloading the necessary training data, you can use [convert_smiles_to_safe.py](convert_smiles_to_safe.py) script for preproccessing training and validation datasets and converting smiles into SAFE representation.
