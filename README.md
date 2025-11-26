@@ -4,7 +4,6 @@ For running the repo please follow the instructions:
 ## Environment installiation:
    - Install conda/miniconda if needed
    - Use flow.yml to create the necessary conda environment for Pre-training/Inference using this codebase:
-     
      ```
     conda env create -f flow.yml
     conda activate flow
