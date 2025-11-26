@@ -16,5 +16,5 @@ TOK2ID = {k: int(v) for k, v in TOK2ID.items()}
 ID2TOK = {int(k): v for k, v in ID2TOK.items()}
 vocab_size = len(TOK2ID) 
 
-batch_size = 265  
+batch_size = 256  
 MAX_LEN = 128         
