@@ -1,28 +1,21 @@
 import pandas as pd
 import safe  
 import json
-from tqdm import tqdm
-import ast
-# from configs import * 
 from utils.functions import canonicalize
-from swifter import swifter
+from configs.data import MAX_LEN
 
 SPECIAL_TOKENS = ['MASK', 'PAD']        
 MASK, PAD = SPECIAL_TOKENS
 
 # --- Load existing vocab ---
-vocab_path = "/home/mqawag/projects/morflow2.0/vocab173.json"
+vocab_path = "/path/to/vocab/vocab.json"
 with open(vocab_path, "r") as f:
     vocab_data = json.load(f)
 
 TOK2ID = vocab_data["tok2id"]
-MAX_LEN = 128
-
-# Ensure IDs are ints (JSON may have converted them to strings)
 TOK2ID = {str(k): int(v) for k, v in TOK2ID.items()}
 
 
-# --- Functions ---
 def encode_row(s):
     """Encode a SMILES string into SAFE + tokens."""
     try:
@@ -57,9 +50,8 @@ def encode(tokens: list[str], TOK2ID, MAX_LEN) -> list[int]:
     else: 
         return None
 
-path = "/hpfs/userws/mqawag/output/data/msg_canopus_ms_sum.pkl"
+path = "/path/to/smiles/data/"
 df = pd.read_pickle(path)
-# df = df[df.split == 'test']
 df['results'] = df['canon_smiles'].swifter.apply(encode_row)
 df = df[df['results'].notnull()].copy()
 df['SAFE'], df['safe_tokens'], df['seq_len'] = zip(*(df['results']))
@@ -67,4 +59,4 @@ df.drop(columns=['results'],inplace= True)
 df['encoded'] = df['safe_tokens'].swifter.apply(lambda tokens: encode(tokens,TOK2ID, MAX_LEN))
 df = df[df['encoded'].notnull()].copy()
 print("file successfully saved")
-df.to_pickle('/hpfs/userws/mqawag/output/data/msg_canopus_ms_sum_safe.pkl')
+df.to_parquet('/path/to/output/data/training_data.parquet')

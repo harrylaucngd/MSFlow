@@ -17,41 +17,6 @@ def dfm_step(batch, cond, model, source, loss_fn, scheduler, path, device, mask_
     force_uncond_prob: probability to drop condition for unconditional training
     """
 
-    # B = batch.size(0)
-    # x1 = batch.to(device)
-    # cond = cond.to(device) if cond is not None else None
-
-    # if source == 'masked':
-    #     x0 = torch.full_like(x1, fill_value=mask_token_id)  # fully masked input
-    # else:
-    #     x0 = torch.randint_like(x1, vocab)  # uniform source
-    
-    # t = torch.rand(B, device=device) * (1 - 1e-3)  # avoid t=1
-    # path_sample = path.sample(t=t, x_0=x0, x_1=x1)
-
-    # logits = torch.zeros(B, x1.size(1), model.lm_head.out_features, device=device, dtype=next(model.parameters()).dtype) 
-    # if training:
-    # # # Probabilistically drop condition for unconditional training
-    #     cond, mask = stochastic_drop_condition(cond, uncond_prob)
-    #     if mask is None:  # unconditional-only training
-    #         logits = model(path_sample.x_t, path_sample.t, cond=None)
-    #     else:
-    #         if mask.any():  # conditional subset
-    #             logits[mask] = model(
-    #                 x=path_sample.x_t[mask], 
-    #                 t=path_sample.t[mask], 
-    #                 cond=cond[mask]
-    #             )
-    #         if (~mask).any():  # unconditional subset
-    #             logits[~mask] = model(
-    #                 x=path_sample.x_t[~mask], 
-    #                 t=path_sample.t[~mask], 
-    #                 cond=None,
-    #             )
-    # else:
-    #     cond = zero_cond_to_none(cond)
-    #     logits = model(x=path_sample.x_t, t=path_sample.t, cond=cond)
-
     B = batch.size(0)
     x1 = batch.to(device)
     cond = cond.to(device) if cond is not None else None

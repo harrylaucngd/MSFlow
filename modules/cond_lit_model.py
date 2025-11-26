@@ -1,6 +1,5 @@
 import pytorch_lightning as pl
 import torch
-# from models.ada_cond_mobert import CondFlowMolBERT
 from torch.optim import AdamW
 from transformers import get_cosine_schedule_with_warmup
 import torch.nn as nn

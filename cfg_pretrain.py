@@ -6,12 +6,11 @@ from pytorch_lightning.loggers import WandbLogger
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
-
 from data import  CondMolDataset
 from modules.cond_lit_model import CondFlowMolBERTLitModule
 from configs import data,lit_model
 from pytorch_lightning.callbacks import EarlyStopping
-from configs.data import TOK2ID
+from configs.data import TOK2ID, vocab_size
 import torch
 import numpy as np
 local_rank = int(os.environ.get("LOCAL_RANK", 0))
@@ -21,34 +20,21 @@ print(f"Process {local_rank} using device: cuda:{local_rank}")
 torch.set_float32_matmul_precision('medium')
 
 def main():
-    df_orig = pd.read_pickle(data.data_path)
-    # df_val = pd.read_parquet('/hpfs/userws/mqawag/output/data/pretrain/combined_val_data.parquet')
-    VOCAB_SIZE = len(TOK2ID)
-    df = df_orig[df_orig['split']!='val']
-    df_val = df_orig[df_orig['split']=='test']
-    encoded = df["encoded"].apply(lambda x: x[:lit_model.MAX_LEN]).tolist()
+    df_train= pd.read_parquet(data.training_data_path)
+    df_val = pd.read_parquet(data.val_data_path)
+    encoded_train = df["encoded"].apply(lambda x: x[:lit_model.MAX_LEN]).tolist()
     encoded_val= df_val["encoded"].apply(lambda x: x[:lit_model.MAX_LEN]).tolist()
-    # condition = df.canon_smiles #.canon_smiles # .iloc[:,-13:-1] this is after adding canon smiles/ it was iloc[:,-12:] .SMILES_standard .iloc[:,-1450:-1]  or #conditions_are 11 chem_props or 1449 CP features
-    # condition_val = df_val.canon_smiles
-    # train_cddds = pd.read_csv('/hpfs/userws/mqawag/output/data/pretrain/combined_data_cddd.csv')
-    # val_cddds = pd.read_csv('/hpfs/userws/mqawag/output/data/pretrain/combined_data_val_cddd.csv')
-    condition =  np.array(df.spectrum_vector.to_list())      #train_cddds.iloc[:,3:].to_numpy()
-    condition_val =  np.array(df_val.spectrum_vector.to_list())      # val_cddds.iloc[:,3:].to_numpy()
-    condition_normalized = condition/condition.max(axis=1, keepdims=True)
-    condition_val_normalized = condition_val/condition_val.max(axis=1, keepdims=True)
-    print("Creating datasets")
-    train_dataset = CondMolDataset(encoded,condition)
+    condition_train = df_train.cddds  #smiles column for ecfp
+    condition_val = df_val.cddds
+    train_dataset = CondMolDataset(encoded_train,condition_train)
     val_dataset = CondMolDataset(encoded_val,condition_val)
     print("Created datasets")
     train_loader = DataLoader(train_dataset, batch_size=data.batch_size, shuffle=True, num_workers=14, pin_memory = True)
     val_loader = DataLoader(val_dataset, batch_size=data.batch_size, shuffle=False, num_workers=14, pin_memory = True)
-    print("Length of training set: ", len(train_dataset))
-    print("Length of validation set: ", len(val_dataset))
 
     wandb_base_dir = "wandb"
     run_id = None
-    # name = f'MSFlow_2.8M_canonical_context_len={lit_model.max_len}_uncond_prob={lit_model.uncond_prob}_{lit_model.COND_DIM}_r=2_LR={lit_model.lr}_{lit_model.source}_dim={lit_model.d_model+1}_countFP'
-    name = f'MSFlow_2.8M_LR={lit_model.lr}_{lit_model.source}_dim={lit_model.d_model+1}_smallbinned_conddimto128'
+    name = f'MSFlow_2.8M_LR={lit_model.lr}_{lit_model.source}_dim={lit_model.d_model+1}_cddd'
     wandb_logger = WandbLogger(
         project="morflow",
         name=f"{name}",
@@ -59,7 +45,7 @@ def main():
 
     cond_model= CondFlowMolBERTLitModule(
         model_name= lit_model.model_name,
-        vocab_size=VOCAB_SIZE,
+        vocab_size=vocab_size,
         time_dim= 1,
         hidden_dim= lit_model.d_model,
         cond_dim=lit_model.COND_DIM,

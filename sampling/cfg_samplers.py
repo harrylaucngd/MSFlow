@@ -4,25 +4,6 @@ import torch.nn.functional as F
 from flow_matching.utils import ModelWrapper
 from flow_matching.solver import MixtureDiscreteEulerSolver
 
-# class WrappedModelCond(ModelWrapper):
-#     def __init__(self, model, temperature: float = 1.0, guidance_scale: float = 1.0):
-#         super().__init__(model)
-#         self.temperature = temperature
-#         self.guidance_scale = guidance_scale
-
-#     def forward(self, x: torch.Tensor, t: torch.Tensor, **extras):
-#         cond = extras.get("cond", None)
-
-#         if self.guidance_scale == 0.0 or cond is None:
-#             logits = self.model(x, t, cond=cond)
-#             return torch.softmax(logits / self.temperature, dim=-1)
-
-#         # Classifier-free guidance
-#         logits_cond = self.model(x, t, cond=cond)
-#         logits_uncond = self.model(x, t, cond=None)
-#         guided_logits = logits_uncond + self.guidance_scale * (logits_cond - logits_uncond)
-#         return torch.softmax(guided_logits / self.temperature, dim=-1)
-
 #newly added that requires one forward pass only but twice the memory
 class WrappedModelCond(ModelWrapper):
     def __init__(self, model, temperature: float = 1.0, guidance_scale: float = 1.0):
@@ -54,9 +35,7 @@ class WrappedModelCond(ModelWrapper):
         return torch.softmax(guided_logits / self.temperature, dim=-1)
 
 
-# -------------------------
-# Conditional sampler
-# -------------------------
+
 @torch.no_grad()
 def sample_flow_cond(
     num_samples: int,

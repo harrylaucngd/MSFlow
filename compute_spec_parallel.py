@@ -103,18 +103,18 @@ def process_chunk(chunk_df, gpu_id, chunk_id, ckpt_dir, checkpoint_path):
 
     
     # cddd
-    # query_smiles = chunk_df.canon_smiles
-    # fps_list = chunk_df["cddd"].tolist()
-    # fps_np = np.array(fps_list, dtype=np.float32)
-    # conds = torch.tensor(fps_np, dtype=torch.float32).to(device)
+    query_smiles = chunk_df.canon_smiles
+    fps_list = chunk_df["cddd"].tolist()
+    fps_np = np.array(fps_list, dtype=np.float32)
+    conds = torch.tensor(fps_np, dtype=torch.float32).to(device)
 
 
 
     # direct
-    query_smiles = chunk_df.canon_smiles
-    condition =  np.array(chunk_df.spectrum_vector.to_list())    
-    condition_normalized = condition/condition.max(axis=1, keepdims=True)
-    conds = torch.tensor(condition_normalized, dtype=torch.float32).to(device)
+    # query_smiles = chunk_df.canon_smiles
+    # condition =  np.array(chunk_df.spectrum_vector.to_list())    
+    # condition_normalized = condition/condition.max(axis=1, keepdims=True)
+    # conds = torch.tensor(condition_normalized, dtype=torch.float32).to(device)
     results = []
 
     for i in tqdm(range(len(query_smiles)), desc=f"GPU {gpu_id} - Chunk {chunk_id}"):
@@ -204,7 +204,7 @@ def process_chunk(chunk_df, gpu_id, chunk_id, ckpt_dir, checkpoint_path):
         results.append(result)
 
     results_df = pd.DataFrame(results)
-    out_path = f"/hpfs/userws/mqawag/output/results/msg_dir_chunk_{chunk_id}_{steps}_steps_results.csv"
+    out_path = f"/hpfs/userws/mqawag/output/results/msg96_chunk_{chunk_id}_{steps}_steps_results.csv"
     results_df.to_csv(out_path, index=False)
     print(f"[GPU {gpu_id}] ✅ Saved results to {out_path}")
 
@@ -213,17 +213,21 @@ def process_chunk(chunk_df, gpu_id, chunk_id, ckpt_dir, checkpoint_path):
 
 
 def main():
-    df_test =  pd.read_pickle('/hpfs/userws/mqawag/output/data/msg_canopus_ms_sum.pkl') # pd.read_parquet('/hpfs/userws/mqawag/output/data/msg_test_cddd_sim92_100epochs.parquet')
+    df_test =  pd.read_parquet('/hpfs/userws/mqawag/output/data/msg_cddd_sim96.parquet') 
+    #/hpfs/userws/mqawag/output/data/msg_canopus_ms_sum.pkl' # ms flow dir
+    # pd.read_parquet('/hpfs/userws/mqawag/output/data/msg_test_cddd_sim92_100epochs.parquet')
     ckpt_dir = '/hpfs/userws/mqawag/output/checkpoints/'
     # checkpoint_path = 'MSFlow_2.8M_canonical_context_len=128_uncond_prob=0.1_4096_r=2_LR=0.0008_uniform_dim=1536_8gpus_best_cond_val-epoch=53-cond_validity=0.9707.ckpt' # bin decoder
    # checkpoint_path = 'MSFlow_2.8M_canonical_context_len=128_uncond_prob=0.1_4096_r=2_LR=0.0005_uniform_dim=1536_countFP_best_cond_val-epoch=57-cond_validity=0.9746.ckpt' # count decoder
-    # checkpoint_path = 'MSFlow_2.8M_LR=0.0001_uniform_dim=1536_cddd_best_cond_val-epoch=67-cond_validity=0.9912.ckpt' # cddd decoder
-    checkpoint_path = 'MSFlow_2.8M_LR=0.0001_uniform_dim=768_smallbinned_conddimto128_best_cond_val-epoch=44-cond_validity=0.3125.ckpt'
-    df_test = df_test[df_test.source =='msg']
-    df_test = df_test[df_test.split=='test']
+    checkpoint_path = 'MSFlow_2.8M_LR=0.0001_uniform_dim=1536_cddd_best_cond_val-epoch=67-cond_validity=0.9912.ckpt' # cddd decoder
+    # checkpoint_path = 'MSFlow_2.8M_LR=0.0001_uniform_dim=768_smallbinned_conddimto128_best_cond_val-epoch=44-cond_validity=0.3125.ckpt'
+    # checkpoint_path = 'MSFlow_2.8M_LR=0.0001_uniform_dim=768_msg_conddimto128_best_cond_val-epoch=13-cond_validity=0.1104.ckpt'
+
+    # df_test = df_test[df_test.source =='msg']
+    # df_test = df_test[df_test.split=='test']
 
     # Split into 8 roughly equal chunks
-    num_gpus = 4
+    num_gpus = 6
     chunks = np.array_split(df_test, num_gpus)
 
     processes = []
@@ -238,11 +242,11 @@ def main():
     # Merge results
     all_results = []
     for i in range(num_gpus):
-        df_chunk = pd.read_csv(f"/hpfs/userws/mqawag/output/results/msg_dir_chunk_{i}_{steps}_steps_results.csv")
+        df_chunk = pd.read_csv(f"/hpfs/userws/mqawag/output/results/msg96_chunk_{i}_{steps}_steps_results.csv")
         all_results.append(df_chunk)
 
     final_df = pd.concat(all_results, ignore_index=True)
-    final_df.to_csv(f"/hpfs/userws/mqawag/output/results/msg_dir_{steps}_steps.csv", index=False)
+    final_df.to_csv(f"/hpfs/userws/mqawag/output/results/msg96_cddd.csv", index=False)
     print("✅ All chunks done and merged.")
 
 

@@ -1,7 +1,5 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
 class AdaptiveLayerNorm(nn.Module):
     def __init__(self, normalized_shape, cond_dim, eps=1e-5):
@@ -23,8 +21,7 @@ class AdaptiveLayerNorm(nn.Module):
 
         #newly added
         uncond_mask = (cond.abs().sum(dim=-1) == 0).float().unsqueeze(-1)
-        # if cond is None:
-        #     return normalized 
+
         gamma_beta = self.mlp(cond)  # [B, 2*D]
         gamma, beta = gamma_beta.chunk(2, dim=-1)  # [B, D], [B, D]
         
@@ -43,9 +40,8 @@ class AdaptiveLayerNorm(nn.Module):
 class ConditionalTransformerEncoderLayer(nn.TransformerEncoderLayer):
     def __init__(self, d_model, nhead, cond_dim=1024, dim_feedforward=2048, dropout=0.1, batch_first=True):
         super().__init__(d_model, nhead, dim_feedforward, dropout, batch_first=batch_first)
-        cond_dim = d_model - 1   #dmodel = dmodel + 1 for time embed , used when we project cond using cond_proj_netwrok
-        # cond_dim = 1024   # used when there's no cond_proj
-        # replace norms with adaptive ones
+        cond_dim = d_model - 1   #dmodel = dmodel + 1 for time embed 
+
         self.norm1 = AdaptiveLayerNorm(d_model, cond_dim)
         self.norm2 = AdaptiveLayerNorm(d_model, cond_dim)
 

@@ -26,7 +26,7 @@ with open('outputs.txt', 'w') as file:
     val =[]
     div = []
     uni = []
-    for step in tqdm([2,5,10,20,40,60,80,100]):
+    for step in tqdm([2,5,10,20,40,60,80,100,128,256,512]):
         samples = generate_mols(dfm, num_samples=1000,steps=step, device = 'cuda',temperature=1.0)
         total_samples = len(samples)
         _, smiles = decode_tokens_to_smiles(samples, ID2TOK=ID2TOK, TOK2ID=TOK2ID, PAD=PAD)
