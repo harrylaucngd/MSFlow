@@ -3,7 +3,7 @@ This is the codebase for our preprint: [MSFlow: flow matching framework for guid
 For running the repo please follow the instructions:
 ## Environment installiation:
    - Install conda/miniconda if needed
-   - Use flow.yml to create the necessary conda environment for using this codebase:
+   - Use [flow.yml](flow.yml) to create the necessary conda environment for using this codebase:
 ```
     conda env create -f flow.yml
     conda activate flow
