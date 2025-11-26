@@ -20,7 +20,7 @@ For pretraining or the MIST encoder (MS-ECFPS/MS-CDDDs) you can run ([train_tune
 For pretraining the (MS-Molecule)
 
 ## Inference with checkpoints
-We also provide weights for the all MIST encoder/MSFlow modules for rnnung inference [here](https://zenodo.org).
+We also provide weights for the all MIST encoder/MSFlow modules for running inference [here](https://zenodo.org).
 After downloading, you can use [condition_inference.py](diffms_scripts/condition_inference.py) to save MS embeddings to a temp dataframe. Then you can set checkpoint path and temp dataframe path for running inference using [compute_spec_parallel.py](compute_spec_parallel.py) script.
 
 ## License
