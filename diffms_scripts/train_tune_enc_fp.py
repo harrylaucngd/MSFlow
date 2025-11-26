@@ -1,18 +1,11 @@
-from omegaconf import OmegaConf
 import numpy as np
 from src.datasets import spec2mol_dataset
-from src import utils
-from omegaconf import DictConfig
 from hydra import compose, initialize
-from omegaconf import OmegaConf
 import torch
 from src.mist.models.spectra_encoder import SpectraEncoderGrowing
-from rdkit import DataStructs
-import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 from hydra import compose, initialize
-from omegaconf import OmegaConf
 import warnings
 from utils.functions import gumbel_sigmoid, tanimoto_similarity, weighted_bce, batch_to_device
 warnings.filterwarnings('ignore')
@@ -36,8 +29,6 @@ fp_model = torch.load(checkpoint_diff, map_location=torch.device(device))
 
 encoder_hidden_dim= 512          # Large Model Default (MSG)
 encoder_magma_modulo= 2048       # Large Model Default (MSG)
-# encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
-# encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
 encoder = SpectraEncoderGrowing(
             inten_transform='float',
             inten_prob=0.1,

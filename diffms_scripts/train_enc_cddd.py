@@ -1,18 +1,12 @@
-from omegaconf import OmegaConf
 import numpy as np
 from src.datasets import spec2mol_dataset
-from src import utils
-from omegaconf import DictConfig
 from hydra import compose, initialize
-from omegaconf import OmegaConf
 import torch
 from src.mist.models.spectra_encoder import SpectraEncoderGrowing
-from rdkit import DataStructs
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 from hydra import compose, initialize
-from omegaconf import OmegaConf
 import warnings
 warnings.filterwarnings('ignore')
 from rdkit import rdBase
@@ -48,9 +42,6 @@ for idx in range(len(datamodule.val_dataset)):
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-# encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
-# encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
 
 encoder_hidden_dim= 512          # Large Model Default (MSG)
 encoder_magma_modulo= 2048       # Large Model Default (MSG)

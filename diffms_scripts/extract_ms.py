@@ -3,18 +3,13 @@ import re
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-# ----------------------------
-#    CONFIGURATION
-# ----------------------------
+
 
 data_dir = "../spec_files"   # <-- set your folder here
 bin_size = 0.1                  # m/z resolution
 max_mz = 2960                   # maximum m/z range for vector length
 min_intensity_fraction = 0.01   # filter peaks <1% base peak
 
-# ----------------------------
-#    Binning function
-# ----------------------------
 
 def spectrum_to_vector(peaks, bin_size=0.1, max_mz=1500):
     """
@@ -45,11 +40,6 @@ def spectrum_to_vector(peaks, bin_size=0.1, max_mz=1500):
 
     return vec
 
-
-# ----------------------------
-#    Parser for .ms files
-# ----------------------------
-
 def parse_ms_file(filepath):
     """
     Extract smiles, spectrumid, and peak list from a GNPS-style .ms file.
@@ -65,10 +55,6 @@ def parse_ms_file(filepath):
     with open(filepath, "r") as f:
         for line in f:
             line = line.strip()
-
-            # -------------------------
-            # Metadata parsing
-            # -------------------------
 
             # Extract SMILES
             if line.startswith("#smiles") or line.lower().startswith(">smiles"):
@@ -91,11 +77,6 @@ def parse_ms_file(filepath):
 
     return smiles,inchi, peaks
 
-
-# ----------------------------
-#    Process entire directory
-# ----------------------------
-
 rows = []
 
 for filename in tqdm(os.listdir(data_dir)):
@@ -103,7 +84,6 @@ for filename in tqdm(os.listdir(data_dir)):
         filepath = os.path.join(data_dir, filename)
         smiles,inchi, peaks = parse_ms_file(filepath)
 
-        # Convert to binned vector
         vector = spectrum_to_vector(peaks, bin_size, max_mz)
 
         rows.append({
@@ -114,7 +94,6 @@ for filename in tqdm(os.listdir(data_dir)):
             "spectrum_vector": vector
         })
 
-# Convert to DataFrame
 df = pd.DataFrame(rows)
 print(df.head())
 print(df.shape)
