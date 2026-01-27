@@ -102,7 +102,9 @@ class CondFlowMolBERTLitModule(pl.LightningModule):
     
     @torch.no_grad()
     def on_validation_epoch_end(self):
-        samples = cond_generate_mols(self.model, self.first_val_batch[1], num_samples=len(self.first_val_batch[1]))
+        val_loader = self.trainer.datamodule.val_dataloader()
+        batch = next(iter(val_loader))
+        samples = cond_generate_mols(self.model, batch[1], num_samples=len(batch[1]))
         total_samples = len(samples)
         _, smiles = decode_tokens_to_smiles(samples, ID2TOK=ID2TOK, TOK2ID=TOK2ID, PAD=PAD)
         metrics = compute_smiles_metrics(total_samples=total_samples, decoded_smiles=smiles)
