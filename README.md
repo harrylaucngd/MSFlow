@@ -28,4 +28,4 @@ After downloading, you can use [condition_inference.py](diffms_scripts/condition
 MSFlow is released under the MIT license.
 
 ## Contact
-If you have any inquiries, please reach out to ghaith.mqawass@pfizer.com
+If you have any inquiries, please reach out to ghaith.mqawass@tum.de
