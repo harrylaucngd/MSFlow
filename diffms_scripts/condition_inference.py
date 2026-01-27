@@ -113,10 +113,8 @@ smiles = []
 for i, _ in tqdm(enumerate(range(len(datamodule.test_dataset)))):
     inchi = datamodule.test_dataset[i]['graph'][0].inchi
     inchis.append(inchi)
-    smiles.append(MolToSmiles(MolFromInchi(inchi),canonical=True))
 
-df_test = pd.DataFrame({'inchi_keys': inchis,
-                   'canon_smiles': smiles,
+df_test = pd.DataFrame({'inchi': inchis,
                    'cddd': [row for row in predictions]
                    })
 df_test.to_parquet('../inference/msg_test_cddd.parquet')
