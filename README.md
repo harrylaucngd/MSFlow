@@ -10,18 +10,18 @@ For running the repo please follow the instructions:
 ```
 ## Data download/preprocessing
 - To download data used for training MSFlow, please follow the same steps for download/preprocessing of data as illustrared in the [DiffMS] repository (https://github.com/coleygroup/DiffMS). You need to clone DiffMS repository into the [diffms_scripts](diffms_scripts) directory for obtaining identical train/validation and also test benchmarks for inference and for running [diffms_scripts](diffms_scripts). 
-- After downloading the necessary training data, you can use [convert_smiles_to_safe.py](convert_smiles_to_safe.py) script for preproccessing training and validation datasets and converting smiles into SAFE representation.
-- For training the pipeline of encoder/decoder using CDDDs representation, you need to first extract cddds for all training/validation/test datasets as illustrated in the repository [CDDDs](https://github.com/jrwnter/cddd)
-- For training the (MS-Molecule) decoder, you need to use [detect_bounds.py](diffms_scripts/detect_bounds.py) and then [extract_ms.py](diffms_scripts/extract_ms.py) to embed MS into vectorized form. You can then use [convert_smiles_to_safe.py](convert_smiles_to_safe.py) script for preproccessing the resulting data and converting smiles into SAFE representation.
-## Running the code
-For pretraining (ECFP-molecule/CDDDs-molecule) decoder you can run [cfg_pretrain.py](cfg_pretrain.py). You will need to set the paths in [config.py](configs/data.py) to match the location of preprocessed data directory. 
-For pretraining or the MIST encoder (MS-ECFPS/MS-CDDDs) you can run ([train_tune_enc_fp.py]([diffms_scripts/train_tune_enc_fp.py)
-/[train_enc_cddd.py]([diffms_scripts/train_enc_cddd.py)).
-For pretraining the (MS-Molecule)
+- After downloading the necessary training data, you can use [convert_smiles_to_safe.py](convert_smiles_to_safe.py) script for pre-processing training and validation datasets and converting smiles into SAFE representation.
+- For training the pipeline of encoder/decoder using CDDDs representation, you need to first extract CDDDs for all training/validation datasets, as illustrated in the repository [CDDDs](https://github.com/jrwnter/cddd)
 
-## Inference with checkpoints
-We also provide weights for the all MIST encoder/MSFlow modules for running inference [here](https://zenodo.org).
-After downloading, you can use [condition_inference.py](diffms_scripts/condition_inference.py) to save MS embeddings to a temp dataframe. Then you can set checkpoint path and temp dataframe path for running inference using [compute_spec_parallel.py](compute_spec_parallel.py) script.
+## Running the code
+- For training (ECFP-molecule/CDDDs-molecule) decoder, you can run [cfg_pretrain.py](cfg_pretrain.py). You will need to set the paths in [config.py](configs/data.py) to match the location of the preprocessed data directory. 
+- For training  the MIST encoder you can run ([train_tune_enc_fp.py]([diffms_scripts/train_tune_enc_fp.py)
+/[train_enc_cddd.py]([diffms_scripts/train_enc_cddd.py)).
+
+
+## Inference with model weights
+We  provide weights for our encoder-decoder pipeline for running inference [here](https://zenodo.org).
+After downloading, you can use [condition_inference.py](diffms_scripts/condition_inference.py) to save MS embeddings to a temporary dataframe. Then you can set the checkpoint path and the temporary dataframe path for running decoding using [compute_spec_parallel.py](compute_spec_parallel.py) script.
 
 ## License
 
