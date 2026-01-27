@@ -87,8 +87,8 @@ class CondFlowMolBERTLitModule(pl.LightningModule):
     
     @torch.no_grad()
     def validation_step(self, batch,batch_idx):
-        if batch_idx == 0:  
-            self.first_val_batch = batch
+        # if batch_idx == 0:  
+        #     self.first_val_batch = batch
         loss = cond_dfm.dfm_step(
                 batch[0],batch[1] ,self.model,self.hparams.source,self.hparams.loss_fn,self.hparams.scheduler, self.hparams.path, 
                 self.hparams.device,
