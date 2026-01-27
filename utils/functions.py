@@ -293,18 +293,7 @@ def transfer_weights_with_adaptive_ln(uncond_model, cond_model, freeze_pretraine
 def canonicalize(smiles):
     mol = Chem.MolFromSmiles(smiles)
     if mol:
-        Chem.RemoveStereochemistry(mol)
         return Chem.MolToSmiles(mol, canonical=True, isomericSmiles=False)
     return None 
-
-def canonicalize_safe(smiles: str):
-    try:
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            return None
-        Chem.RemoveStereochemistry(mol)
-        return Chem.MolToSmiles(mol, canonical=True, isomericSmiles=False)
-    except Exception:
-        return None
 
 
