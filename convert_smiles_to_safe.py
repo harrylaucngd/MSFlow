@@ -20,7 +20,7 @@ def encode_row(s):
     """Encode a SMILES string into SAFE + tokens."""
     try:
         s = canonicalize(s)
-        encoded = safe.encode(s, ignore_stereo=True)
+        encoded = safe.encode(s)
         tokens = list(safe.split(encoded))
         return  encoded, tokens, len(tokens)
     except safe.SAFEFragmentationError:
