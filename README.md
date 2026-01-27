@@ -14,11 +14,9 @@ For running the repo please follow the instructions:
 - For training the pipeline of encoder/decoder using CDDDs representation, you need to first extract CDDDs for all training/validation datasets, as illustrated in the repository [CDDDs](https://github.com/jrwnter/cddd)
 
 ## Running the code
-- For training (ECFP-molecule/CDDDs-molecule) decoder, you can run [cfg_pretrain.py](cfg_pretrain.py). You will need to set the paths in [config.py](configs/data.py) to match the location of the preprocessed data directory. 
-- For training  the MIST encoder you can run ([train_tune_enc_fp.py]([diffms_scripts/train_tune_enc_fp.py)
-/[train_enc_cddd.py]([diffms_scripts/train_enc_cddd.py)).
-
-
+- For training the flow decoder, you can run [cfg_pretrain.py](cfg_pretrain.py). You will need to set the paths in [config.py](configs/data.py) to match the location of the preprocessed data directory. 
+- For training MIST encoder you can run [train_enc_cddd.py]([diffms_scripts/train_enc_cddd.py)).
+- 
 ## Inference with model weights
 We  provide weights for our encoder-decoder pipeline for running inference [here](https://zenodo.org).
 After downloading, you can use [condition_inference.py](diffms_scripts/condition_inference.py) to save MS embeddings to a temporary dataframe. Then you can set the checkpoint path and the temporary dataframe path for running decoding using [compute_spec_parallel.py](compute_spec_parallel.py) script.
