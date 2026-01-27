@@ -15,7 +15,7 @@ from hydra import compose, initialize
 from omegaconf import OmegaConf
 import warnings
 from rdkit.Chem import AllChem
-from rdkit.Chem import MolFromSmiles, MolFromInchi, MolToSmiles, RemoveStereochemistry, MolToInchi
+from rdkit.Chem import MolFromSmiles, MolFromInchi, MolToSmiles, MolToInchi
 warnings.filterwarnings('ignore')
 from rdkit import rdBase
 from tqdm import tqdm
@@ -113,7 +113,7 @@ smiles = []
 for i, _ in tqdm(enumerate(range(len(datamodule.test_dataset)))):
     inchi = datamodule.test_dataset[i]['graph'][0].inchi
     inchis.append(inchi)
-    smiles.append(MolToSmiles(MolFromInchi(inchi),canonical=True, isomericSmiles=False))
+    smiles.append(MolToSmiles(MolFromInchi(inchi),canonical=True))
 
 df_test = pd.DataFrame({'inchi_keys': inchis,
                    'canon_smiles': smiles,
