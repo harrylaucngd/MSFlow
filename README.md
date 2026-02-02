@@ -9,13 +9,14 @@ For running the repo please follow the instructions:
     conda activate flow
 ```
 ## Data download/preprocessing
-- To download data used for training MSFlow, please follow the same steps for download/preprocessing of data as illustrared in the [DiffMS] repository (https://github.com/coleygroup/DiffMS). You need to clone DiffMS repository into the [ms_scripts](ms_scripts) directory for obtaining identical train/validation and also test sets.
+- To download data used for training MSFlow, please follow the same steps for download/preprocessing of data as illustrared in the repository [DiffMS](https://github.com/coleygroup/DiffMS). You need to clone DiffMS repository into the [ms_scripts](ms_scripts) directory for obtaining identical train/validation and also test sets.
 - Then, you can derive CDDD representations for all datasets as illustrated in the repository [CDDDs](https://github.com/jrwnter/cddd)
 ### Encoder training:
 - You can use CANOPUS and MassSpyGym training and validation data for training MS-CDDD decoder.
-- After downloading the necessary training data, you can use [convert_smiles_to_safe.py](convert_smiles_to_safe.py) script for pre-processing decoder training and validation datasets and converting smiles into SAFE representation.
-- You can check the original repository for retraining MIST using the provided script [train_mist.py]([https://github.com/samgoldman97/mist/blob/main_v2/src/mist/train_mist.py) but with CDDD representations.
+- You can check the original repository for retraining MIST using the provided script [src/train_mist.py]([https://github.com/samgoldman97/mist/blob/main_v2/src/mist/train_mist.py) but with CDDD representations.
+
 ### Decoder training:
+- After downloading the necessary training data, you can use [convert_smiles_to_safe.py](convert_smiles_to_safe.py) script for pre-processing decoder training and validation datasets and converting smiles into SAFE representation.
 - For training the flow decoder, you can run [cfg_pretrain.py](cfg_pretrain.py). You will need to set the paths in [config.py](configs/data.py) to match the data directory.
 
 ## Inference with model weights

@@ -21,6 +21,8 @@ from rdkit import rdBase
 from tqdm import tqdm
 import pandas as pd
 import torch.nn.functional as F
+from utils.functions import replace_sigmoid_with_tanh
+
 blocker = rdBase.BlockLogs()
 
 
@@ -48,17 +50,12 @@ if dataset_config["name"] not in ("canopus", "msg"):
     raise NotImplementedError("Unknown dataset {}".format(cfg["dataset"]))
 
 datamodule = spec2mol_dataset.Spec2MolDataModule(cfg)
-data_with_cddds = '../msg_cddd.csv'
-df_cddds = pd.read_csv(data_with_cddds)  # path to pandas df with cddds
-
-for idx in range(len(datamodule.test_dataset)):
-    datamodule.test_dataset[idx]['graph'][0].y = df_cddds[df_cddds['split'] == 'test'].iloc[idx,6:].to_numpy()
     
             
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
            
 checkpoint_diff = '../checkpoints/encoder_msg_cddd.pt' 
-fp_model = torch.load(checkpoint_diff, map_location=torch.device(device))
+cddd_model = torch.load(checkpoint_diff, map_location=torch.device(device))
 # encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
 # encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
 encoder_hidden_dim= 512          # Large Model Default (MSG)
@@ -83,12 +80,10 @@ encoder = SpectraEncoderGrowing(
             refine_layers=4,
             magma_modulo=encoder_magma_modulo,
         )
-encoder.load_state_dict(fp_model['model_state_dict'])
+encoder.load_state_dict(cddd_model['model_state_dict'])
 replace_sigmoid_with_tanh(encoder)
 
 results = []
-sims = []
-cdd = []
 encoder.to(device)
 encoder.eval()
 for data in tqdm(datamodule.test_dataloader_custom(datamodule.test_dataset,bs=1)):
@@ -98,7 +93,6 @@ for data in tqdm(datamodule.test_dataloader_custom(datamodule.test_dataset,bs=1)
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
     del outputs
-    del cddds
     del data
 predictions = torch.cat(results)
 predictions = predictions.detach().cpu().numpy()
@@ -111,4 +105,4 @@ for i, _ in tqdm(enumerate(range(len(datamodule.test_dataset)))):
 df_test = pd.DataFrame({'inchi': inchis,
                    'cddd': [row for row in predictions]
                    })
-df_test.to_parquet('../inference/msg_test_cddd.parquet')
+df_test.to_parquet('../example_conditions/msg_test_cddd.csv')
