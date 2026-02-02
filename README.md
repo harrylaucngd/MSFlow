@@ -13,7 +13,7 @@ For running the repo please follow the instructions:
 - Then, you can derive CDDD representations for all datasets as illustrated in the repository [CDDDs](https://github.com/jrwnter/cddd)
 ### Encoder training:
 - You can use CANOPUS and MassSpyGym training and validation data for training MS-CDDD decoder.
-- You can check the original repository for retraining MIST using the provided script [src/train_mist.py]([https://github.com/samgoldman97/mist/blob/main_v2/src/mist/train_mist.py) but with CDDD representations.
+- You can check the original repository for retraining MIST using the provided script [src/mist/train_mist.py]([https://github.com/samgoldman97/mist/blob/main_v2/src/mist/train_mist.py) but with CDDD representations.
 
 ### Decoder training:
 - After downloading the necessary training data, you can use [convert_smiles_to_safe.py](convert_smiles_to_safe.py) script for pre-processing decoder training and validation datasets and converting smiles into SAFE representation.
