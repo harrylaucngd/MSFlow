@@ -15,7 +15,7 @@ from trainers import  cond_dfm
 class CondFlowMolBERTLitModule(pl.LightningModule):
     def __init__(
         self,
-        model_name='dfm',  # or 'diffusion'
+        model_name='dfm',  
         vocab_size=173,
         time_dim = 1,
         hidden_dim=128,

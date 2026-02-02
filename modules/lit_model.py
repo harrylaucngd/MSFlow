@@ -1,7 +1,7 @@
 import pytorch_lightning as pl
 import torch
 from models.molbert import FlowMolBERT
-from trainers import diffusion, dfm
+from trainers import  dfm
 from torch.optim import AdamW
 from transformers import get_cosine_schedule_with_warmup
 import torch.nn as nn
@@ -14,7 +14,7 @@ from configs import *
 class FlowMolBERTLitModule(pl.LightningModule):
     def __init__(
         self,
-        model_name='dfm',  # or 'diffusion'
+        model_name='dfm',  
         vocab_size=173,
         time_dim = 1,
         hidden_dim=128,
@@ -58,17 +58,7 @@ class FlowMolBERTLitModule(pl.LightningModule):
     def training_step(self, batch):
         optimizer = self.optimizers()
         loss = None
-        if self.model_name == 'diffusion':
-            loss = diffusion.diffusion_train_step(
-                batch, self.model,
-                self.hparams.vocab_size,
-                self.hparams.device,
-                self.hparams.mask_token_id,
-                self.hparams.pad_token_id
-            )
-            self.log("diffusion_loss", loss, prog_bar=True)
-
-        elif self.model_name == 'dfm':
+        if self.model_name == 'dfm':
             loss = dfm.dfm_step(
                 batch, self.model,self.hparams.source,self.hparams.loss_fn,self.hparams.scheduler, self.hparams.path, 
                 self.hparams.device,

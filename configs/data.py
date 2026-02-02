@@ -3,7 +3,7 @@ import json
 
 training_data_path = '/path/to/parquet/training_data/'  # example: # data_path = '/path/to/combined_training_data.parquet'
 val_data_path = '/path/to/parquet/val_data/'
-vocab_path = '/path/to/vocab.json'
+vocab_path = 'vocab.json'
 output_path = '/path/to/checkpoints/'
 SEED = 42
 random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)
