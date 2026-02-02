@@ -3,6 +3,9 @@
 *.log
 *.txt
 *.png
+*.ckpt
+checkpoints/MSFlow/
+checkpoints/.nfs000000004a8d120f0000000a
 wandb/
 mlruns/
 logs/
