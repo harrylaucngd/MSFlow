@@ -4,6 +4,7 @@
 *.txt
 *.png
 *.ckpt
+ms_scripts/DiffMS/
 checkpoints/MSFlow/
 checkpoints/.nfs000000004a8d120f0000000a
 wandb/
