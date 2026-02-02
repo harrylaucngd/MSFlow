@@ -23,27 +23,6 @@ import pandas as pd
 import torch.nn.functional as F
 blocker = rdBase.BlockLogs()
 
-with initialize(version_base=None, config_path="./configs", job_name="test_app"):
-    cfg = compose(config_name="config")
-
-dataset_config = cfg["dataset"]
-
-if dataset_config["name"] not in ("canopus", "msg"):
-    raise NotImplementedError("Unknown dataset {}".format(cfg["dataset"]))
-
-datamodule = spec2mol_dataset.Spec2MolDataModule(cfg)
-data_with_cddds = '../msg_cddd.csv'
-df_cddds = pd.read_csv(data_with_cddds)  # path to pandas df with cddds
-
-for idx in range(len(datamodule.test_dataset)):
-    datamodule.test_dataset[idx]['graph'][0].y = df_cddds[df_cddds['split'] == 'test'].iloc[idx,6:].to_numpy()
-
-
-
-
-
-
-
 
 def batch_to_device(batch, device):
     """
@@ -59,6 +38,21 @@ def batch_to_device(batch, device):
         return tuple(batch_to_device(v, device) for v in batch)
     else:
         return batch  # leave other types (ints, strings) unchanged
+
+with initialize(version_base=None, config_path="./configs", job_name="test_app"):
+    cfg = compose(config_name="config")
+
+dataset_config = cfg["dataset"]
+
+if dataset_config["name"] not in ("canopus", "msg"):
+    raise NotImplementedError("Unknown dataset {}".format(cfg["dataset"]))
+
+datamodule = spec2mol_dataset.Spec2MolDataModule(cfg)
+data_with_cddds = '../msg_cddd.csv'
+df_cddds = pd.read_csv(data_with_cddds)  # path to pandas df with cddds
+
+for idx in range(len(datamodule.test_dataset)):
+    datamodule.test_dataset[idx]['graph'][0].y = df_cddds[df_cddds['split'] == 'test'].iloc[idx,6:].to_numpy()
     
             
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
