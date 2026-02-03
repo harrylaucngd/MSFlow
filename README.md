@@ -20,8 +20,8 @@ For running the repo please follow the instructions:
 - For training the flow decoder, you can run [cfg_pretrain.py](cfg_pretrain.py). You will need to set the paths in [config.py](configs/data.py) to match the data directory.
 
 ## Inference with model weights
-We  provide weights for our encoder-decoder pipeline for running inference [here](https://zenodo.org).
-- For MS-to-CDDD inference:  Inside the directory [ms_scripts](ms_scripts) you need to clone DiffMS repo, install the environment and the repo as a package and downloading the benchmarks following the authors instructions listed until preprcoessing/downloading NPLIB1 and MSG benchmarks. We advice to create a seperate conda environment for encoder inference following the authors instructions. Then you can use [condition_inference.py](ms_scripts/condition_inference.py) script to run inference with our provided checkpoints and save MS embeddings to an output dataframe.
+We  provide weights for our encoder-decoder pipeline for running inference [here](https://drive.google.com/drive/folders/18YovWipLFmO8-ziM4EyzWI5QmrMHzW1A?usp=drive_link).
+- For MS-to-CDDD inference:  Inside the directory [ms_scripts](ms_scripts) you need to clone DiffMS repo, install the environment and the repo as a package and download the benchmarks following the authors instructions listed until preprocessing/downloading NPLIB1 and MSG benchmarks. We advice to create a seperate conda environment for encoder inference following the authors instructions. Then you can use [condition_inference.py](ms_scripts/condition_inference.py) script to run inference with our provided checkpoints and save MS embeddings to an output dataframe.
 - Additionally, we provide some examples for running decoder inference using [inference.py](inference.py) that can be used after downloading the checkpoint and storing it in the existing checkpoints placeholder directory.
 
 ## License

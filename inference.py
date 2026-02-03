@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 condition_df = pd.read_csv('example_conditions/canopus_cddd_example.csv') 
 query_smiles = condition_df.canon_smiles
-cddd_list = condition_df.iloc[0,3:].tolist() # specify columns corresponding to cddd 
+cddd_list = condition_df.iloc[0,3:].tolist() # specify columns corresponding to cddd  or df['cddd'] depding on format
 cddd_np = np.array(cddd_list, dtype=np.float32)
 cond = torch.tensor(cddd_np, dtype=torch.float32).to(device)
 samples = cond_generate_mols(
