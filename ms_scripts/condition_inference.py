@@ -1,11 +1,9 @@
 import sys
-sys.path.append('/wuppertal/gpznx/MSFlow/ms_scripts/DiffMS/src')
-from omegaconf import OmegaConf
+sys.path.append('../MSFlow/ms_scripts/DiffMS/src') # Adjust the path as needed to point to the DiffMS/src directory
 import numpy as np
 from DiffMS.src.datasets import spec2mol_dataset
 from omegaconf import DictConfig
 from hydra import compose, initialize
-from omegaconf import OmegaConf
 import torch
 import torch.nn as nn
 from DiffMS.src.mist.models.spectra_encoder import SpectraEncoderGrowing
@@ -13,7 +11,6 @@ import torch.optim as optim
 from tqdm import tqdm
 from hydra import compose, initialize
 import warnings
-from rdkit.Chem import AllChem
 from rdkit.Chem import MolFromSmiles, MolFromInchi, MolToSmiles, MolToInchi
 warnings.filterwarnings('ignore')
 from rdkit import rdBase
@@ -56,12 +53,12 @@ datamodule = spec2mol_dataset.Spec2MolDataModule(cfg)
             
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
            
-checkpoint_diff = '../MSFlow/checkpoints/MSFlow/Encoder/encoder_canpous_cddd.pt' 
+checkpoint_diff = '../MSFlow/checkpoints/MSFlow/Encoder/encoder_msg_cddd.pt' 
 cddd_model = torch.load(checkpoint_diff, map_location=torch.device(device))
-encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
-encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
-# encoder_hidden_dim= 512          # Large Model Default (MSG)
-# encoder_magma_modulo= 2048       # Large Model Default (MSG)
+# encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
+# encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
+encoder_hidden_dim= 512          # Large Model Default (MSG)
+encoder_magma_modulo= 2048       # Large Model Default (MSG)
 encoder = SpectraEncoderGrowing(
             inten_transform='float',
             inten_prob=0.1,
@@ -88,7 +85,7 @@ print(encoder)
 results = []
 encoder.to(device)
 encoder.eval()
-for data in tqdm(datamodule.test_dataloader()): #datamodule.test_dataset,bs=1
+for data in tqdm(datamodule.test_dataloader()): 
     data = batch_to_device(data,device)  
     outputs,aux = encoder(data)
     results.append(outputs)
