@@ -1,31 +1,33 @@
+import sys
+sys.path.append('/wuppertal/gpznx/MSFlow/ms_scripts/DiffMS/src')
 from omegaconf import OmegaConf
 import numpy as np
 from DiffMS.src.datasets import spec2mol_dataset
-from src import utils
 from omegaconf import DictConfig
 from hydra import compose, initialize
 from omegaconf import OmegaConf
 import torch
-from src.mist.models.spectra_encoder import SpectraEncoderGrowing
-from rdkit import DataStructs
 import torch.nn as nn
+from DiffMS.src.mist.models.spectra_encoder import SpectraEncoderGrowing
 import torch.optim as optim
 from tqdm import tqdm
 from hydra import compose, initialize
-from omegaconf import OmegaConf
 import warnings
 from rdkit.Chem import AllChem
 from rdkit.Chem import MolFromSmiles, MolFromInchi, MolToSmiles, MolToInchi
 warnings.filterwarnings('ignore')
 from rdkit import rdBase
-from tqdm import tqdm
 import pandas as pd
 import torch.nn.functional as F
-from utils.functions import replace_sigmoid_with_tanh
 
 blocker = rdBase.BlockLogs()
 
-
+def replace_sigmoid_with_tanh(module):
+    for name, child in module.named_children():
+        if isinstance(child, nn.Sigmoid):
+            setattr(module, name, nn.Tanh())
+        else:
+            replace_sigmoid_with_tanh(child)
 def batch_to_device(batch, device):
     """
     Recursively move a batch (dict, list, tuple, tensor) to the given device.
@@ -41,7 +43,7 @@ def batch_to_device(batch, device):
     else:
         return batch  # leave other types (ints, strings) unchanged
 
-with initialize(version_base=None, config_path="./configs", job_name="test_app"):
+with initialize(version_base=None, config_path="DiffMS/configs", job_name="test_app"):
     cfg = compose(config_name="config")
 
 dataset_config = cfg["dataset"]
@@ -54,12 +56,12 @@ datamodule = spec2mol_dataset.Spec2MolDataModule(cfg)
             
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
            
-checkpoint_diff = '../checkpoints/encoder_msg_cddd.pt' 
+checkpoint_diff = '../MSFlow/checkpoints/MSFlow/Encoder/encoder_canpous_cddd.pt' 
 cddd_model = torch.load(checkpoint_diff, map_location=torch.device(device))
-# encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
-# encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
-encoder_hidden_dim= 512          # Large Model Default (MSG)
-encoder_magma_modulo= 2048       # Large Model Default (MSG)
+encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
+encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
+# encoder_hidden_dim= 512          # Large Model Default (MSG)
+# encoder_magma_modulo= 2048       # Large Model Default (MSG)
 encoder = SpectraEncoderGrowing(
             inten_transform='float',
             inten_prob=0.1,
@@ -82,11 +84,11 @@ encoder = SpectraEncoderGrowing(
         )
 encoder.load_state_dict(cddd_model['model_state_dict'])
 replace_sigmoid_with_tanh(encoder)
-
+print(encoder)
 results = []
 encoder.to(device)
 encoder.eval()
-for data in tqdm(datamodule.test_dataloader_custom(datamodule.test_dataset,bs=1)):
+for data in tqdm(datamodule.test_dataloader()): #datamodule.test_dataset,bs=1
     data = batch_to_device(data,device)  
     outputs,aux = encoder(data)
     results.append(outputs)
@@ -96,13 +98,16 @@ for data in tqdm(datamodule.test_dataloader_custom(datamodule.test_dataset,bs=1)
     del data
 predictions = torch.cat(results)
 predictions = predictions.detach().cpu().numpy()
+print(predictions.shape)
 inchis = []
 smiles = []
 for i, _ in tqdm(enumerate(range(len(datamodule.test_dataset)))):
     inchi = datamodule.test_dataset[i]['graph'][0].inchi
     inchis.append(inchi)
+    smiles.append(MolToSmiles(MolFromInchi(inchi),isomericSmiles=False))
 
 df_test = pd.DataFrame({'inchi': inchis,
+                        'canon_smiles': smiles,
                    'cddd': [row for row in predictions]
                    })
-df_test.to_parquet('../example_conditions/msg_test_cddd.csv')
+df_test.to_csv('../example_conditions/canopus_test_cddd.csv')
