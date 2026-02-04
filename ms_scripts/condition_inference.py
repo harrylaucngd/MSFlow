@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/MSFlow/ms_scripts/DiffMS/src')# Adjust the path as needed to point to the DiffMS/src directory
+sys.path.append('MSFlow/ms_scripts/DiffMS/src')# Adjust the path as needed to point to the DiffMS/src directory
 import numpy as np
 from DiffMS.src.datasets import spec2mol_dataset
 from hydra import compose, initialize
@@ -50,7 +50,7 @@ datamodule = spec2mol_dataset.Spec2MolDataModule(cfg)
     
             
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-checkpoint = '/MSFlow/checkpoints/MSFlow/Encoder/encoder_msg_cddd.pt' # Better to set absolute path of the downloaded checkpoint checkpoint
+checkpoint = 'MSFlow/checkpoints/MSFlow/Encoder/encoder_msg_cddd.pt' # Better to set absolute path of the downloaded checkpoint checkpoint
 cddd_model = torch.load(checkpoint, map_location=torch.device(device))
 # encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
 # encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
