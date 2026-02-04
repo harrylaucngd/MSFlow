@@ -1,4 +1,4 @@
-# MSFlow: a flow matching framework for guided de-novo drug elucidation from MassSpec data
+# MSFlow: De novo molecular structure elucidation from mass spectra via flow matching
 This is the codebase for our preprint: [MSFlow: De novo molecular structure elucidation from mass spectra via flow matching](https://arxiv.org/).
 For running the repo please follow the instructions:
 ## Environment installiation:
