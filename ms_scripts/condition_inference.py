@@ -1,17 +1,15 @@
 import sys
-sys.path.append('../MSFlow/ms_scripts/DiffMS/src') # Adjust the path as needed to point to the DiffMS/src directory
+sys.path.append('/MSFlow/ms_scripts/DiffMS/src')# Adjust the path as needed to point to the DiffMS/src directory
 import numpy as np
 from DiffMS.src.datasets import spec2mol_dataset
-from omegaconf import DictConfig
 from hydra import compose, initialize
 import torch
 import torch.nn as nn
 from DiffMS.src.mist.models.spectra_encoder import SpectraEncoderGrowing
-import torch.optim as optim
 from tqdm import tqdm
 from hydra import compose, initialize
 import warnings
-from rdkit.Chem import MolFromSmiles, MolFromInchi, MolToSmiles, MolToInchi
+from rdkit.Chem import  MolFromInchi, MolToSmiles
 warnings.filterwarnings('ignore')
 from rdkit import rdBase
 import pandas as pd
@@ -52,9 +50,8 @@ datamodule = spec2mol_dataset.Spec2MolDataModule(cfg)
     
             
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-           
-checkpoint_diff = '../MSFlow/checkpoints/MSFlow/Encoder/encoder_msg_cddd.pt' 
-cddd_model = torch.load(checkpoint_diff, map_location=torch.device(device))
+checkpoint = '/MSFlow/checkpoints/MSFlow/Encoder/encoder_msg_cddd.pt' # Better to set absolute path of the downloaded checkpoint checkpoint
+cddd_model = torch.load(checkpoint, map_location=torch.device(device))
 # encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
 # encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
 encoder_hidden_dim= 512          # Large Model Default (MSG)
@@ -107,4 +104,4 @@ df_test = pd.DataFrame({'inchi': inchis,
                         'canon_smiles': smiles,
                    'cddd': [row for row in predictions]
                    })
-df_test.to_csv('../example_conditions/canopus_test_cddd.csv')
+df_test.to_csv('../example_conditions/msg_test_cddd.csv')
