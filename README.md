@@ -12,7 +12,7 @@ For running the repo please follow the instructions:
 - To download data used for training MSFlow, please follow the same steps for download/preprocessing of data as illustrared in the repository [DiffMS](https://github.com/coleygroup/DiffMS). You need to clone DiffMS repository into the [ms_scripts](ms_scripts) directory for obtaining identical train/validation and also test sets.
 - Then, you can derive CDDD representations for all datasets as illustrated in the repository [CDDDs](https://github.com/jrwnter/cddd)
 ### Encoder training:
-- You can use CANOPUS and MassSpyGym training and validation data for training MS-CDDD decoder.
+- You can use CANOPUS and MassSpyGym training and validation data for training MS-CDDD encoder.
 - You can check the original repository for retraining MIST using the provided script [train_mist.py](https://github.com/samgoldman97/mist/blob/main_v2/src/mist/train_mist.py) but with CDDD representations.
 
 ### Decoder training:
