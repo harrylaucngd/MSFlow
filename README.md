@@ -1,5 +1,5 @@
 # MSFlow: De novo molecular structure elucidation from mass spectra via flow matching
-This is the codebase for our preprint: [MSFlow: De novo molecular structure elucidation from mass spectra via flow matching](https://arxiv.org/).
+This is the codebase for our preprint: [MSFlow: De novo molecular structure elucidation from mass spectra via flow matching](https://arxiv.org/pdf/2602.19912).
 For running the repo please follow the instructions:
 ## Environment installiation:
    - Install conda/miniconda if needed
