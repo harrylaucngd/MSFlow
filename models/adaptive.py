@@ -65,7 +65,7 @@ class ConditionalTransformerEncoderLayer(nn.TransformerEncoderLayer):
 class ConditionalTransformerEncoder(nn.TransformerEncoder):
     def __init__(self, encoder_layer, num_layers, norm=None):
         super().__init__(encoder_layer, num_layers, norm)
-        self.layers = nn.ModuleList([copy.deedcopy(encoder_layer) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([copy.deepcopy(encoder_layer) for _ in range(num_layers)])
         self.num_layers = num_layers
         self.norm = norm
 
