@@ -1,11 +1,14 @@
 import sys
-sys.path.append('MSFlow/ms_scripts/DiffMS/src')# Adjust the path as needed to point to the DiffMS/src directory
+import os
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_SCRIPT_DIR, 'DiffMS', 'src'))
+sys.path.insert(0, os.path.join(_SCRIPT_DIR, 'DiffMS'))
 import numpy as np
-from DiffMS.src.datasets import spec2mol_dataset
+from datasets import spec2mol_dataset
 from hydra import compose, initialize
 import torch
 import torch.nn as nn
-from DiffMS.src.mist.models.spectra_encoder import SpectraEncoderGrowing
+from mist.models.spectra_encoder import SpectraEncoderGrowing
 from tqdm import tqdm
 from hydra import compose, initialize
 import warnings
@@ -38,8 +41,16 @@ def batch_to_device(batch, device):
     else:
         return batch  # leave other types (ints, strings) unchanged
 
+_DATA_DIR = os.path.join(_SCRIPT_DIR, '..', 'data', 'canopus')
+_DATA_DIR = os.path.normpath(_DATA_DIR)
 with initialize(version_base=None, config_path="DiffMS/configs", job_name="test_app"):
-    cfg = compose(config_name="config")
+    cfg = compose(config_name="config", overrides=[
+        f"dataset.datadir={_DATA_DIR}",
+        f"dataset.split_file={_DATA_DIR}/splits/canopus_hplus_100_0.tsv",
+        f"dataset.labels_file={_DATA_DIR}/labels.tsv",
+        f"dataset.spec_folder={_DATA_DIR}/spec_files",
+        f"dataset.subform_folder={_DATA_DIR}/subformulae/subformulae_default",
+    ])
 
 dataset_config = cfg["dataset"]
 
@@ -50,12 +61,12 @@ datamodule = spec2mol_dataset.Spec2MolDataModule(cfg)
     
             
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-checkpoint = 'MSFlow/checkpoints/MSFlow/Encoder/encoder_msg_cddd.pt' # Better to set absolute path of the downloaded checkpoint checkpoint
+checkpoint = '/home/liuhx25/MSFlow/checkpoints/MSFlow/Encoder/encoder_canpous_cddd.pt'
 cddd_model = torch.load(checkpoint, map_location=torch.device(device))
-# encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
-# encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
-encoder_hidden_dim= 512          # Large Model Default (MSG)
-encoder_magma_modulo= 2048       # Large Model Default (MSG)
+encoder_hidden_dim= 256           # Small Model Default (CANOPUS)
+encoder_magma_modulo= 512         # Small Model Default (CANOPUS)
+# encoder_hidden_dim= 512          # Large Model Default (MSG)
+# encoder_magma_modulo= 2048       # Large Model Default (MSG)
 encoder = SpectraEncoderGrowing(
             inten_transform='float',
             inten_prob=0.1,
@@ -104,4 +115,6 @@ df_test = pd.DataFrame({'inchi': inchis,
                         'canon_smiles': smiles,
                    'cddd': [row for row in predictions]
                    })
-df_test.to_csv('../example_conditions/msg_test_cddd.csv')
+_OUT_DIR = os.path.normpath(os.path.join(_SCRIPT_DIR, '..', 'output', 'conditions'))
+os.makedirs(_OUT_DIR, exist_ok=True)
+df_test.to_parquet(os.path.join(_OUT_DIR, 'canopus_test_cddd.parquet'), index=False)

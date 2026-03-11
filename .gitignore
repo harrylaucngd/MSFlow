@@ -4,8 +4,10 @@
 *.txt
 *.png
 *.ckpt
+data/
 ms_scripts/DiffMS/
 example_conditions/canopus_test_cddd.csv
+checkpoints_download/
 checkpoints/MSFlow/
 checkpoints/.nfs000000004a8d120f0000000a
 wandb/
@@ -13,4 +15,5 @@ mlruns/
 logs/
 figures/
 results/
+output/
 pretrained_mist/
